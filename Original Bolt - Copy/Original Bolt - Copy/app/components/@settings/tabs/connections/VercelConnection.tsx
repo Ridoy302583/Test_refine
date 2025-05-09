@@ -5,18 +5,29 @@ import { useStore } from '@nanostores/react';
 import { logStore } from '~/lib/stores/logs';
 import { classNames } from '~/utils/classNames';
 import {
-  vercelConnection,
+  vercelConnectionStore,
   isConnecting,
   isFetchingStats,
   updateVercelConnection,
   fetchVercelStats,
+  refreshAllVercelData,
+  deleteVercel,
+  saveVercelConnectionToDB,
 } from '~/lib/stores/vercel';
+import { Input } from '~/components/ui/Input';
+import { GradientIconBox } from '~/components/ui/GradientIconBox';
+import { Button } from '~/components/ui/Button';
+import useUser from '~/types/user';
 
-export default function VercelConnection() {
-  const connection = useStore(vercelConnection);
+interface VercelConnectionProps {
+  setVercelConnection?: (connection: boolean) => void;
+}
+
+export default function VercelConnection({ setVercelConnection }: VercelConnectionProps) {
+  const connection = useStore(vercelConnectionStore);
   const connecting = useStore(isConnecting);
-  const fetchingStats = useStore(isFetchingStats);
-  const [isProjectsExpanded, setIsProjectsExpanded] = useState(false);
+  const { getStoredToken } = useUser();
+  const user_token = getStoredToken();
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -30,90 +41,90 @@ export default function VercelConnection() {
   const handleConnect = async (event: React.FormEvent) => {
     event.preventDefault();
     isConnecting.set(true);
+    if (user_token) {
+      try {
+        const response = await fetch('https://api.vercel.com/v2/user', {
+          headers: {
+            Authorization: `Bearer ${connection.token}`,
+            'Content-Type': 'application/json',
+          },
+        });
 
-    try {
-      const response = await fetch('https://api.vercel.com/v2/user', {
-        headers: {
-          Authorization: `Bearer ${connection.token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+        if (!response.ok) {
+          throw new Error('Invalid token or unauthorized');
+        }
 
-      if (!response.ok) {
-        throw new Error('Invalid token or unauthorized');
+        const userData = (await response.json()) as any;
+        updateVercelConnection({
+          user: userData.user || userData,
+          token: connection.token,
+        });
+        await saveVercelConnectionToDB(user_token,connection.token)
+        await fetchVercelStats(connection.token);
+        refreshAllVercelData(user_token);
+        toast.success('Successfully connected to Vercel');
+      } catch (error) {
+        console.error('Auth error:', error);
+        logStore.logError('Failed to authenticate with Vercel', { error });
+        toast.error('Failed to connect to Vercel');
+        updateVercelConnection({ user: null, token: '' });
+      } finally {
+        isConnecting.set(false);
       }
-
-      const userData = (await response.json()) as any;
-      updateVercelConnection({
-        user: userData.user || userData, // Handle both possible structures
-        token: connection.token,
-      });
-
-      await fetchVercelStats(connection.token);
-      toast.success('Successfully connected to Vercel');
-    } catch (error) {
-      console.error('Auth error:', error);
-      logStore.logError('Failed to authenticate with Vercel', { error });
-      toast.error('Failed to connect to Vercel');
-      updateVercelConnection({ user: null, token: '' });
-    } finally {
-      isConnecting.set(false);
     }
   };
 
-  const handleDisconnect = () => {
-    updateVercelConnection({ user: null, token: '' });
-    toast.success('Disconnected from Vercel');
+  const handleDisconnect = async () => {
+    if (!user_token) return;
+    try {
+      const result = await deleteVercel(user_token);
+      if (result) {
+        updateVercelConnection({ user: null, token: '', stats: undefined });
+        refreshAllVercelData(user_token);
+      }
+    } catch (error) {
+      console.error('Error disconnecting from Vercel:', error);
+    }
   };
-
-  console.log('connection', connection);
 
   return (
     <motion.div
-      className="bg-[#FFFFFF] dark:bg-[#0A0A0A] rounded-lg border border-[#E5E5E5] dark:border-[#1A1A1A]"
+      className="bg-transparent rounded-lg border border-alpha-white-10"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 }}
     >
       <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <img
-              className="w-5 h-5 dark:invert"
-              height="24"
-              width="24"
-              crossOrigin="anonymous"
-              src={`https://cdn.simpleicons.org/vercel/black`}
-            />
-            <h3 className="text-base font-medium text-bolt-elements-textPrimary">Vercel Connection</h3>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <GradientIconBox iconClassName="i-material-icon-theme:vercel text-xl" />
+            <div>
+              <h3 className="text-lg font-medium text-white">Connection Settings</h3>
+              <p className="text-sm text-gray-400">Configure your Vercel connection</p>
+            </div>
           </div>
         </div>
 
         {!connection.user ? (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-bolt-elements-textSecondary mb-2">Personal Access Token</label>
-              <input
+              <label className="block text-sm text-gray-400 mb-2">Personal Access Token</label>
+              <Input
                 type="password"
                 value={connection.token}
                 onChange={(e) => updateVercelConnection({ ...connection, token: e.target.value })}
                 disabled={connecting}
                 placeholder="Enter your Vercel personal access token"
-                className={classNames(
-                  'w-full px-3 py-2 rounded-lg text-sm',
-                  'bg-[#F8F8F8] dark:bg-[#1A1A1A]',
-                  'border border-[#E5E5E5] dark:border-[#333333]',
-                  'text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary',
-                  'focus:outline-none focus:ring-1 focus:ring-bolt-elements-borderColorActive',
-                  'disabled:opacity-50',
-                )}
+                className={classNames('w-full bg-transparent border border-alpha-white-10 outline-none focus:outline-none text-gray-200', {
+                  'border-red-500': false,
+                })}
               />
-              <div className="mt-2 text-sm text-bolt-elements-textSecondary">
+              <div className="mt-2 text-sm text-gray-400">
                 <a
                   href="https://vercel.com/account/tokens"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-bolt-elements-borderColorActive hover:underline inline-flex items-center gap-1"
+                  className="text-blue-500 hover:underline inline-flex items-center gap-1"
                 >
                   Get your token
                   <div className="i-ph:arrow-square-out w-4 h-4" />
@@ -121,16 +132,13 @@ export default function VercelConnection() {
               </div>
             </div>
 
-            <button
+            <Button
               onClick={handleConnect}
+              variant="default"
               disabled={connecting || !connection.token}
-              className={classNames(
-                'px-4 py-2 rounded-lg text-sm flex items-center gap-2',
-                'bg-[#303030] text-white',
-                'hover:bg-[#5E41D0] hover:text-white',
-                'disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200',
-                'transform active:scale-95',
-              )}
+              className={`relative flex justify-center items-center p-3.5 rounded-md text-white font-medium text-base transition-all duration-300 gap-2
+                ${connecting ? 'bg-gray-700 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 cursor-pointer'}
+                overflow-hidden group shadow-lg shadow-blue-900/20`}
             >
               {connecting ? (
                 <>
@@ -140,148 +148,59 @@ export default function VercelConnection() {
               ) : (
                 <>
                   <div className="i-ph:plug-charging w-4 h-4" />
-                  Connect
+                  Connect to Vercel
                 </>
               )}
-            </button>
+            </Button>
           </div>
         ) : (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={handleDisconnect}
-                  className={classNames(
-                    'px-4 py-2 rounded-lg text-sm flex items-center gap-2',
-                    'bg-red-500 text-white',
-                    'hover:bg-red-600',
-                  )}
-                >
-                  <div className="i-ph:plug w-4 h-4" />
-                  Disconnect
-                </button>
-                <span className="text-sm text-bolt-elements-textSecondary flex items-center gap-1">
-                  <div className="i-ph:check-circle w-4 h-4 text-green-500" />
-                  Connected to Vercel
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4 p-4 bg-[#F8F8F8] dark:bg-[#1A1A1A] rounded-lg">
-              {/* Debug output */}
-              <pre className="hidden">{JSON.stringify(connection.user, null, 2)}</pre>
-
-              <img
-                src={`https://vercel.com/api/www/avatar?u=${connection.user?.username || connection.user?.user?.username}`}
-                referrerPolicy="no-referrer"
-                crossOrigin="anonymous"
-                alt="User Avatar"
-                className="w-12 h-12 rounded-full border-2 border-bolt-elements-borderColorActive"
-              />
-              <div>
-                <h4 className="text-sm font-medium text-bolt-elements-textPrimary">
-                  {connection.user?.username || connection.user?.user?.username || 'Vercel User'}
-                </h4>
-                <p className="text-sm text-bolt-elements-textSecondary">
-                  {connection.user?.email || connection.user?.user?.email || 'No email available'}
-                </p>
-              </div>
-            </div>
-
-            {fetchingStats ? (
-              <div className="flex items-center gap-2 text-sm text-bolt-elements-textSecondary">
-                <div className="i-ph:spinner-gap w-4 h-4 animate-spin" />
-                Fetching Vercel projects...
-              </div>
-            ) : (
-              <div>
-                <button
-                  onClick={() => setIsProjectsExpanded(!isProjectsExpanded)}
-                  className="w-full bg-transparent text-left text-sm font-medium text-bolt-elements-textPrimary mb-3 flex items-center gap-2"
-                >
-                  <div className="i-ph:buildings w-4 h-4" />
-                  Your Projects ({connection.stats?.totalProjects || 0})
-                  <div
-                    className={classNames(
-                      'i-ph:caret-down w-4 h-4 ml-auto transition-transform',
-                      isProjectsExpanded ? 'rotate-180' : '',
-                    )}
+          <div className='w-full'>
+            {connection.user && (
+              <div className="border-t border-alpha-white-10 pt-6">
+                <div className="flex items-center gap-4 p-4 bg-transparent border border-alpha-white-10 rounded-lg mb-4">
+                  <img
+                    src={`https://vercel.com/api/www/avatar?u=${connection.user?.username || connection.user?.user?.username}`}
+                    alt={connection.user.username}
+                    className="w-12 h-12 rounded-full border-2 border-pink-500"
+                    crossOrigin='anonymous'
+                    referrerPolicy='no-referrer'
                   />
-                </button>
-                {isProjectsExpanded && connection.stats?.projects?.length ? (
-                  <div className="grid gap-3">
-                    {connection.stats.projects.map((project) => (
-                      <a
-                        key={project.id}
-                        href={`https://vercel.com/dashboard/${project.id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block p-4 rounded-lg border border-bolt-elements-borderColor hover:border-bolt-elements-borderColorActive transition-colors"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h5 className="text-sm font-medium text-bolt-elements-textPrimary flex items-center gap-2">
-                              <div className="i-ph:globe w-4 h-4 text-bolt-elements-borderColorActive" />
-                              {project.name}
-                            </h5>
-                            <div className="flex items-center gap-2 mt-2 text-xs text-bolt-elements-textSecondary">
-                              {project.targets?.production?.alias && project.targets.production.alias.length > 0 ? (
-                                <>
-                                  <a
-                                    href={`https://${project.targets.production.alias.find((a: string) => a.endsWith('.vercel.app') && !a.includes('-projects.vercel.app')) || project.targets.production.alias[0]}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="hover:text-bolt-elements-borderColorActive"
-                                  >
-                                    {project.targets.production.alias.find(
-                                      (a: string) => a.endsWith('.vercel.app') && !a.includes('-projects.vercel.app'),
-                                    ) || project.targets.production.alias[0]}
-                                  </a>
-                                  <span>•</span>
-                                  <span className="flex items-center gap-1">
-                                    <div className="i-ph:clock w-3 h-3" />
-                                    {new Date(project.createdAt).toLocaleDateString()}
-                                  </span>
-                                </>
-                              ) : project.latestDeployments && project.latestDeployments.length > 0 ? (
-                                <>
-                                  <a
-                                    href={`https://${project.latestDeployments[0].url}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="hover:text-bolt-elements-borderColorActive"
-                                  >
-                                    {project.latestDeployments[0].url}
-                                  </a>
-                                  <span>•</span>
-                                  <span className="flex items-center gap-1">
-                                    <div className="i-ph:clock w-3 h-3" />
-                                    {new Date(project.latestDeployments[0].created).toLocaleDateString()}
-                                  </span>
-                                </>
-                              ) : null}
-                            </div>
-                          </div>
-                          {project.framework && (
-                            <div className="text-xs text-bolt-elements-textSecondary px-2 py-1 rounded-md bg-[#F0F0F0] dark:bg-[#252525]">
-                              <span className="flex items-center gap-1">
-                                <div className="i-ph:code w-3 h-3" />
-                                {project.framework}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </a>
-                    ))}
+                  <div>
+                    <h4 className="text-sm font-medium text-white">
+                      {connection.user?.username || connection.user?.user?.username || 'Vercel User'}
+                    </h4>
+                    <p className="text-sm text-gray-400">
+                      {connection.user?.email || connection.user?.user?.email || 'No email available'}
+                    </p>
                   </div>
-                ) : isProjectsExpanded ? (
-                  <div className="text-sm text-bolt-elements-textSecondary flex items-center gap-2">
-                    <div className="i-ph:info w-4 h-4" />
-                    No projects found in your Vercel account
-                  </div>
-                ) : null}
+                </div>
               </div>
             )}
+            <div className="flex flex-col w-full gap-4 mt-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  onClick={() => window.open('https://vercel.com/', '_blank', 'noopener,noreferrer')}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <div className="i-hugeicons:dashboard-square-02 w-4 h-4" />
+                  Dashboard
+                </Button>
+                <Button onClick={handleDisconnect} variant="destructive" size="sm" className="flex items-center gap-2">
+                  <div className="i-ph:sign-out w-4 h-4" />
+                  Disconnect
+                </Button>
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <div className="i-ph:check-circle w-4 h-4 text-websparks-elements-icon-success dark:text-websparks-elements-icon-success" />
+                    <span className="text-sm text-websparks-elements-textPrimary dark:text-websparks-elements-textPrimary">
+                      Connected to Vercel
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

@@ -528,16 +528,16 @@ ${skippedFiles.map((f) => `- ${f}`).join('\n')}`
                 : ''
               }
 
-<websparksArtifact id="imported-files" title="Git Cloned Files" type="bundled">
+<boltArtifact id="imported-files" title="Git Cloned Files" type="bundled">
 ${fileContents
                 .map(
                   (file) =>
-                    `<websparksAction type="file" filePath="${file.path}">
+                    `<boltAction type="file" filePath="${file.path}">
 ${escapeBoltTags(file.content)}
-</websparksAction>`,
+</boltAction>`,
                 )
                 .join('\n')}
-</websparksArtifact>`,
+</boltArtifact>`,
             id: generateId(),
             createdAt: new Date(),
           };
