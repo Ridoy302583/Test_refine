@@ -1,11 +1,11 @@
 import { json, useNavigate, useSearchParams } from '@remix-run/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
-import { GradientIconBox } from '~/components/ui/GradientIconBox';
-import { API_BASE_URL } from '~/config';
-import Logo from '~/icons/roundedlogo.svg';
-import useGithub from '~/lib/hooks/useGithub';
-import useUser from '~/types/user';
+// import { GradientIconBox } from '~/components/ui/GradientIconBox';
+// import { API_BASE_URL } from '~/config';
+// import Logo from '~/icons/roundedlogo.svg';
+// import useGithub from '~/lib/hooks/useGithub';
+// import useUser from '~/types/user';
 
 // This component handles the redirect from Google OAuth
 export default function GoogleAuthCallback() {

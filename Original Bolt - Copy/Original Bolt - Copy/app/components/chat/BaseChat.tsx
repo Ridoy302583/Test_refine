@@ -648,7 +648,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         title="Connect Apps"
                         className='transition-all cursor-pointer hover:opacity-80'
                       >
-                        <GradientIconBox iconClassName="i-codicon:github-inverted text-white text-xl" />
+                        {/* <GradientIconBox iconClassName="i-codicon:github-inverted text-white text-xl" /> */}
                       </div>
                       {/* <GitCloneButton importChat={importChat} /> */}
                     </div>
