@@ -1112,7 +1112,7 @@ ${escapeBoltTags(file.content)}
                             setSignInOpen(true);
                           }
                         }}
-                        title="Connect Github"
+                        title="Clone from Github"
                         className='transition-all cursor-pointer hover:opacity-80'
                       >
                         <GradientIconBox iconClassName="i-codicon:github-inverted text-white text-xl" />
