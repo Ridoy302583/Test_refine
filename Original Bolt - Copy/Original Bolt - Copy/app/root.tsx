@@ -41,10 +41,18 @@ export const links: LinksFunction = () => [
   },
 ];
 
-// Set dark theme directly without localStorage
 const inlineThemeCode = stripIndents`
-  // Set dark theme immediately when the script loads
-  document.querySelector('html')?.setAttribute('data-theme', 'dark');
+  setTutorialKitTheme();
+
+  function setTutorialKitTheme() {
+    let theme = localStorage.getItem('bolt_theme');
+
+    if (!theme) {
+      theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+
+    document.querySelector('html')?.setAttribute('data-theme', theme);
+  }
 `;
 
 export const Head = createHead(() => (
@@ -58,13 +66,11 @@ export const Head = createHead(() => (
 ));
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  // Set theme directly to dark (no conditional logic)
+  const theme = useStore(themeStore);
+
   useEffect(() => {
-    // Update theme store for consistency
-    themeStore.set('dark');
-    // Ensure dark theme is applied
-    document.querySelector('html')?.setAttribute('data-theme', 'dark');
-  }, []);
+    document.querySelector('html')?.setAttribute('data-theme', theme);
+  }, [theme]);
 
   return (
     <>
@@ -78,13 +84,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
 import { logStore } from './lib/stores/logs';
 
 export default function App() {
-  // No need to read theme from store, just use 'dark' directly
+  const theme = useStore(themeStore);
+
   useEffect(() => {
-    // Always dark theme
-    themeStore.set('dark');
-    
     logStore.logSystem('Application initialized', {
-      theme: 'dark',
+      theme,
       platform: navigator.platform,
       userAgent: navigator.userAgent,
       timestamp: new Date().toISOString(),
