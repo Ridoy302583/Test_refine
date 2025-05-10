@@ -1,4 +1,7 @@
-
+/*
+ * @ts-nocheck
+ * Preventing TS checks with files presented in the video for a better presentation.
+ */
 import { useStore } from '@nanostores/react';
 import type { Message } from 'ai';
 import { useChat } from 'ai/react';
@@ -24,29 +27,15 @@ import { logStore } from '~/lib/stores/logs';
 import { streamingState } from '~/lib/stores/streaming';
 import { filesToArtifacts } from '~/utils/fileUtils';
 import { supabaseConnection } from '~/lib/stores/supabase';
-import useUser, { UserMe } from '~/types/user';
-import { firebaseConnection } from '~/lib/stores/firebase';
-import { API_BASE_URL } from '~/config';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
   exit: 'animated fadeOutRight',
 });
-interface HeaderProps {
-  setSignInOpen: (open: boolean) => void;
-  handleClickOpenUpgrade: () => void;
-  menuOpen: boolean;
-  isSettingsOpen: boolean;
-  setIsSettingsOpen: (open: boolean) => void;
-  activeTab: string;
-  setActiveTab: (messageId: string) => void;
-  setActiveConnection: (messageId: string) => void;
-  setIsStreaming: (value: boolean) => void
-}
 
 const logger = createScopedLogger('Chat');
 
-export const Chat: React.FC<HeaderProps> = ({ setSignInOpen, handleClickOpenUpgrade, menuOpen, isSettingsOpen, setIsSettingsOpen, activeTab, setActiveTab, setActiveConnection, setIsStreaming }) => {
+export function Chat() {
   renderLogger.trace('Chat');
 
   const { ready, initialMessages, storeMessageHistory, importChat, exportChat } = useChatHistory();
@@ -59,19 +48,11 @@ export const Chat: React.FC<HeaderProps> = ({ setSignInOpen, handleClickOpenUpgr
     <>
       {ready && (
         <ChatImpl
-          setSignInOpen={setSignInOpen}
           description={title}
           initialMessages={initialMessages}
           exportChat={exportChat}
           storeMessageHistory={storeMessageHistory}
           importChat={importChat}
-          menuOpen={menuOpen}
-          isSettingsOpen={isSettingsOpen}
-          setIsSettingsOpen={setIsSettingsOpen}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          setActiveConnection={setActiveConnection}
-          setIsStreaming={setIsStreaming}
         />
       )}
       <ToastContainer
@@ -123,55 +104,17 @@ const processSampledMessages = createSampler(
   },
   50,
 );
-interface User {
-  status: string;
-  full_name: string;
-  profile_pic: string;
-  email_verified: boolean;
-  theme: string;
-  id: number;
-  language: string;
-  register_type: string;
-  email: string;
-  access_token: string;
-  role: string;
-}
-
-interface UserPlan {
-  name: string;
-  status: string;
-  remaining_chat_time: number;
-  plan_start_date: string;
-  plan_end_date: string;
-  unlimited_access: boolean;
-  token_available: number;
-  total_token: number;
-  remaining_token: number;
-}
-
-interface UserResponse {
-  user: User;
-  user_plan: UserPlan;
-}
 
 interface ChatProps {
-  setSignInOpen: (open: boolean) => void;
   initialMessages: Message[];
   storeMessageHistory: (messages: Message[]) => Promise<void>;
   importChat: (description: string, messages: Message[]) => Promise<void>;
   exportChat: () => void;
   description?: string;
-  menuOpen: boolean;
-  isSettingsOpen: boolean;
-  setIsSettingsOpen: (open: boolean) => void;
-  activeTab: string;
-  setActiveTab: (messageId: string) => void;
-  setActiveConnection: (messageId: string) => void;
-  setIsStreaming: (value: boolean) => void;
 }
 
 export const ChatImpl = memo(
-  ({ setSignInOpen, description, initialMessages, storeMessageHistory, importChat, exportChat, menuOpen, isSettingsOpen, setIsSettingsOpen, activeTab, setActiveTab, setActiveConnection, setIsStreaming }: ChatProps) => {
+  ({ description, initialMessages, storeMessageHistory, importChat, exportChat }: ChatProps) => {
     useShortcuts();
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -183,27 +126,13 @@ export const ChatImpl = memo(
     const files = useStore(workbenchStore.files);
     const actionAlert = useStore(workbenchStore.alert);
     const deployAlert = useStore(workbenchStore.deployAlert);
-    const supabaseConn = useStore(supabaseConnection);
-     // Add this line to get Supabase connection
-    const firebaseConn = useStore(firebaseConnection);
-    const selectedSupabaseProject = supabaseConn.stats?.projects?.find(
+    const supabaseConn = useStore(supabaseConnection); // Add this line to get Supabase connection
+    const selectedProject = supabaseConn.stats?.projects?.find(
       (project) => project.id === supabaseConn.selectedProjectId,
     );
-    const getSelectedFirebaseApp = () => {
-      if (!firebaseConn.selectedAppId || !firebaseConn.stats?.projects) return null;
-      for (const project of firebaseConn.stats.projects) {
-        if (project.apps && Array.isArray(project.apps)) {
-          const app = project.apps.find(app => app.appId === firebaseConn.selectedAppId);
-          if (app) return app;
-        }
-      }
-      return null;
-    };
-    const selectedFirebaseApp = getSelectedFirebaseApp();
     const supabaseAlert = useStore(workbenchStore.supabaseAlert);
     const { activeProviders, promptId, autoSelectTemplate, contextOptimizationEnabled } = useSettings();
-    const { getStoredToken, user } = useUser();
-    const token = getStoredToken();
+
     const [model, setModel] = useState(() => {
       const savedModel = Cookies.get('selectedModel');
       return savedModel || DEFAULT_MODEL;
@@ -241,22 +170,10 @@ export const ChatImpl = memo(
         contextOptimization: contextOptimizationEnabled,
         supabase: {
           isConnected: supabaseConn.isConnected,
-          hasSelectedProject: !!selectedSupabaseProject,
+          hasSelectedProject: !!selectedProject,
           credentials: {
-            supabaseUrl: supabaseConn.credentials?.supabaseUrl,
-            anonKey: supabaseConn.credentials?.anonKey,
-          },
-        },
-        firebase: {
-          isConnected: firebaseConn.isConnected,
-          hasSelectedApp: !!selectedFirebaseApp,
-          credentials: {
-            projectID: firebaseConn.credentials?.projectId,
-            apiKey: firebaseConn.credentials?.apiKey,
-            appID: firebaseConn.credentials?.appId,
-            authDomain: firebaseConn.credentials?.authDomain,
-            storageBucket: firebaseConn.credentials?.storageBucket,
-            messagingSenderId: firebaseConn.credentials?.messagingSenderId
+            supabaseUrl: supabaseConn?.credentials?.supabaseUrl,
+            anonKey: supabaseConn?.credentials?.anonKey,
           },
         },
       },
@@ -383,10 +300,6 @@ export const ChatImpl = memo(
 
     const sendMessage = async (_event: React.UIEvent, messageInput?: string) => {
       const messageContent = messageInput || input;
-      if (!token) {
-        setSignInOpen(true);
-        return;
-      }
 
       if (!messageContent?.trim()) {
         return;
@@ -412,9 +325,9 @@ export const ChatImpl = memo(
           if (template !== 'blank') {
             const temResp = await getTemplates(template, title).catch((e) => {
               if (e.message.includes('rate limit')) {
-                // toast.warning('Rate limit exceeded. Skipping starter template\n Continuing with blank template');
+                toast.warning('Rate limit exceeded. Skipping starter template\n Continuing with blank template');
               } else {
-                // toast.warning('Failed to import starter template\n Continuing with blank template');
+                toast.warning('Failed to import starter template\n Continuing with blank template');
               }
 
               return null;
@@ -594,7 +507,6 @@ export const ChatImpl = memo(
         textareaRef={textareaRef}
         input={input}
         showChat={showChat}
-        menuOpen={menuOpen}
         chatStarted={chatStarted}
         isStreaming={isLoading || fakeLoading}
         onStreamingChange={(streaming) => {
@@ -603,20 +515,16 @@ export const ChatImpl = memo(
         enhancingPrompt={enhancingPrompt}
         promptEnhanced={promptEnhanced}
         sendMessage={sendMessage}
-
         model={model}
         setModel={handleModelChange}
         provider={provider}
         setProvider={handleProviderChange}
         providerList={activeProviders}
-        // messageRef={messageRef}
-        // scrollRef={scrollRef}
         handleInputChange={(e) => {
           onTextareaChange(e);
           debouncedCachePrompt(e);
         }}
         handleStop={abort}
-        setSignInOpen={setSignInOpen}
         description={description}
         importChat={importChat}
         exportChat={exportChat}
@@ -650,13 +558,9 @@ export const ChatImpl = memo(
         clearAlert={() => workbenchStore.clearAlert()}
         supabaseAlert={supabaseAlert}
         clearSupabaseAlert={() => workbenchStore.clearSupabaseAlert()}
+        deployAlert={deployAlert}
+        clearDeployAlert={() => workbenchStore.clearDeployAlert()}
         data={chatData}
-        isSettingsOpen={isSettingsOpen}
-        setIsSettingsOpen={setIsSettingsOpen}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        setActiveConnection={setActiveConnection}
-        seletedDatabase={selectedSupabaseProject?.name || selectedFirebaseApp?.displayName}
       />
     );
   },

@@ -1,7 +1,4 @@
-/*
- * @ts-nocheck
- * Preventing TS checks with files presented in the video for a better presentation.
- */
+
 import type { JSONValue, Message } from 'ai';
 import React, { type RefCallback, useEffect, useRef, useState } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
@@ -16,7 +13,6 @@ import { APIKeyManager, getApiKeysFromCookies } from './APIKeyManager';
 import Cookies from 'js-cookie';
 import * as Tooltip from '@radix-ui/react-tooltip';
 // import '../../styles/components/animation.css';
-
 import styles from './BaseChat.module.scss';
 import { ExportChatButton } from '~/components/chat/chatExportAndImport/ExportChatButton';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
@@ -39,11 +35,6 @@ import type { ProgressAnnotation } from '~/types/context';
 import type { ActionRunner } from '~/lib/runtime/action-runner';
 import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
 import { SupabaseChatAlert } from '~/components/chat/SupabaseAlert';
-import { SupabaseConnection } from './SupabaseConnection';
-import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
-import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
-import { useStore } from '@nanostores/react';
-import { StickToBottom, useStickToBottomContext } from '~/lib/hooks';
 // import { SupabaseConnection } from '../@settings/tabs/connections/SupabaseConnection';
 import useViewport from '~/lib/hooks';
 import { PRICING_URL } from '~/config';
@@ -67,12 +58,14 @@ import { GithubConnectionDialog } from '../others/GithubConnectionDialog';
 // import { ConnectionApps } from '../others/ConnectionApps';
 
 const TEXTAREA_MIN_HEIGHT = 76;
+
 const EXAMPLE_PROMPTS = [
-  { text: 'Create a Personal Portfolio for me. My name is John Doe, who is the CEO of Websparks Corporations. I want Dark Background but Light Beam focus the every section with stunning color pallete. I want use more and more section and Stunning Color pallete. Use React Jsx and tailwind css.' },
-  { text: 'Create a SaaS Landing Page for my startup. My Startup Name is StartMotion. I want Light Dark Background color using gradient and Light Beam focus the every section. Use React Jsx and tailwind css' },
+  { text: 'Create a Personal Portfolio for me. My name is John Doe, who is the CEO of Websparks Corporations. I want Dark Background but Light Beam focus the every section with stunning color pallete. I want use more and more section and Stunning Color pallete. Use React Jsx and tailwind css.' },
+  { text: 'Create a SaaS Landing Page for my startup. My Startup Name is StartMotion. I want Light Dark Background color using gradient and Light Beam focus the every section. Use React Jsx and tailwind css' },
   { text: 'Create a modern, responsive landing page for a fictional SaaS company. The landing page should include the following sections: A header with the company logo, navigation links, and a call-to-action button.A hero section with a catchy headline, brief description, and a prominent call-to-action.A features section highlighting 3-4 key features of StreamLine.A testimonials section with quotes from satisfied customers.A pricing section with different plan options.A final call-to-action section to encourage sign-ups.A footer with important links and social media icons.' },
   { text: 'Create a modern, minimalist newsletter signup form for a fictional brand.The signup form should include the following elements:A centered card with subtle shadow and rounded corners.A white card on a subtle purple gradient backdrop for a clean, modern look.A logo or brand mark displayed at the top.A welcoming headline, e.g., "Subscribe to My Newsletter," and a brief subheading explaining the value proposition.Social sign-up options with recognizable icons.An email input field and a prominent call-to-action button (e.g., purple or indigo).Additional links below the form for terms, privacy, or help. A footer with trust indicators, such as "We respect your privacy.' },
 ];
+
 
 interface BaseChatProps {
   textareaRef?: React.RefObject<HTMLTextAreaElement> | undefined;
@@ -119,6 +112,7 @@ interface BaseChatProps {
   setActiveConnection: (messageId: string) => void;
   seletedDatabase ?:string; 
 }
+
 const IGNORE_PATTERNS = [
   'node_modules/**',
   '.git/**',
@@ -202,8 +196,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [transcript, setTranscript] = useState('');
     const [isModelLoading, setIsModelLoading] = useState<string | undefined>('all');
     const [progressAnnotations, setProgressAnnotations] = useState<ProgressAnnotation[]>([]);
-    const expoUrl = useStore(expoUrlAtom);
-    const [qrModalOpen, setQrModalOpen] = useState(false);
     const { getStoredToken } = useUser();
     const token = getStoredToken();
     const [anchorE2, setAnchorE2] = useState<null | HTMLElement>(null);
@@ -218,15 +210,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [cumulativeTranscript, setCumulativeTranscript] = useState('');
     const [openGithubConnectionDialog, setOpenGithubConnectionDialog] = useState<boolean>(false);
     const { user } = useUser();
+    
+
     const [isGithubOpen, setIsGithubOpen] = useState(false);
+
     const [isPromptEnhanced, setIsPromptEnhanced] = useState(false);
-
-    useEffect(() => {
-      if (expoUrl) {
-        setQrModalOpen(true);
-      }
-    }, [expoUrl]);
-
     useEffect(() => {
       if (data) {
         const progressList = data.filter(
@@ -257,8 +245,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             .map((result) => result.transcript)
             .join('');
 
-            const fullTranscript = cumulativeTranscript + ' ' + currentTranscript;
-            setTranscript(fullTranscript.trim());
+          const fullTranscript = cumulativeTranscript + ' ' + currentTranscript;
+          setTranscript(fullTranscript.trim());
 
           if (handleInputChange) {
             const syntheticEvent = {
@@ -269,13 +257,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         };
 
         recognition.onerror = (event) => {
-          console.error('Speech recognition error:', event.error);
           setIsListening(false);
         };
 
         setRecognition(recognition);
       }
-    },  [cumulativeTranscript]);
+    }, [cumulativeTranscript]);
 
     useEffect(() => {
       if (typeof window !== 'undefined') {
@@ -541,16 +528,16 @@ ${skippedFiles.map((f) => `- ${f}`).join('\n')}`
                 : ''
               }
 
-<websparksArtifact id="imported-files" title="Git Cloned Files" type="bundled">
+<boltArtifact id="imported-files" title="Git Cloned Files" type="bundled">
 ${fileContents
                 .map(
                   (file) =>
-                    `<websparksAction type="file" filePath="${file.path}">
+                    `<boltAction type="file" filePath="${file.path}">
 ${escapeBoltTags(file.content)}
-</websparksAction>`,
+</boltAction>`,
                 )
                 .join('\n')}
-</websparksArtifact>`,
+</boltArtifact>`,
             id: generateId(),
             createdAt: new Date(),
           };
@@ -651,8 +638,6 @@ ${escapeBoltTags(file.content)}
       </svg>
     );
 
-
-
     const handlePaste = async (e: React.ClipboardEvent) => {
       const items = e.clipboardData?.items;
 
@@ -696,7 +681,7 @@ ${escapeBoltTags(file.content)}
         className={classNames(styles.BaseChat, 'relative flex h-full w-full overflow-hidden')}
         data-chat-visible={showChat}
       >
-         <div className='absolute top-0 flex justify-center w-full'>
+        <div className='absolute top-0 flex justify-center w-full'>
           <div className="relative" style={{ width: '100%', height: '100%' }}>
             {/* Base logo with low opacity */}
             <svg
@@ -750,33 +735,30 @@ ${escapeBoltTags(file.content)}
           </div>
         </div>
         <ClientOnly>{() => <Menu chatStarted={chatStarted} menuOpen={menuOpen} isSettingsOpen={isSettingsOpen} setIsSettingsOpen={setIsSettingsOpen} activeTab={activeTab} setActiveTab={setActiveTab} setActiveConnection={setActiveConnection} />}</ClientOnly>
-        {/* <div ref={scrollRef} className="flex flex-col lg:flex-row overflow-y-auto w-full h-full"></div> */}
-        <div className="flex flex-col lg:flex-row overflow-y-auto w-full h-full">
+        <div ref={scrollRef} className="flex flex-col lg:flex-row overflow-y-auto w-full h-full">
           <div className={classNames(styles.Chat, 'flex flex-col flex-grow lg:min-w-[var(--chat-min-width)] h-full')}>
             {!chatStarted && (
               <MediaFile handleFileUpload={handleFileUpload} setSignInOpen={setSignInOpen} handleClickOpenWhiteBoard={handleClickOpenWhiteBoard} onCrawlerClose={onCrawlerClose} />
             )}
-            
-            <StickToBottom
-              className={classNames('pt-6 px-2 sm:px-6 relative', {
-                'h-full flex flex-col modern-scrollbar': chatStarted,
+            <div
+              className={classNames('pt-6 px-2 sm:px-6', {
+                'h-full flex flex-col': chatStarted,
               })}
-              resize="smooth"
-              initial="smooth"
+              ref={scrollRef}
             >
-              <StickToBottom.Content className="flex flex-col gap-4">
-                <ClientOnly>
-                  {() => {
-                    return chatStarted ? (
-                      <Messages
-                        className="flex flex-col w-full flex-1 max-w-chat pb-6 mx-auto z-1"
-                        messages={messages}
-                        isStreaming={isStreaming}
-                      />
-                    ) : null;
-                  }}
-                </ClientOnly>
-              </StickToBottom.Content>
+              <ClientOnly>
+                {() => {
+                  return chatStarted ? (
+                    <Messages
+                      ref={messageRef}
+                      className="flex flex-col w-full flex-1 max-w-chat pb-6 mx-auto z-1"
+                      messages={messages}
+                      isStreaming={isStreaming}
+                    />
+                  ) : null;
+                }}
+              </ClientOnly>
+
               {!chatStarted && (
                 <div id="examples" className="relative w-full max-w-[900px] mx-auto flex justify-center mb-4">
                   <div className="flex flex-wrap gap-1 justify-center">
@@ -811,15 +793,14 @@ ${escapeBoltTags(file.content)}
               )}
 
               <div
-                className={classNames('my-auto flex flex-col gap-2 w-full max-w-chat mx-auto z-prompt mb-6', {
-                  'sticky bottom-2': chatStarted,
+                className={classNames('flex flex-col gap-0 w-full max-w-chat mx-auto z-prompt mb-6 relative', {
+                  'sticky bottom-0': chatStarted,
                 })}
                 style={{
                   maxWidth: chatStarted ? 600 : 800
                 }}
               >
-                
-                <div className="flex flex-col gap-2 bg-transparent">
+                <div className="bg-transparent">
                   {actionAlert && (
                     <ChatAlert
                       alert={actionAlert}
@@ -850,20 +831,7 @@ ${escapeBoltTags(file.content)}
                       }}
                     />
                   )}
-                  {/* {actionAlert && (
-                    <ChatAlert
-                      alert={actionAlert}
-                      clearAlert={() => clearAlert?.()}
-                      postMessage={(message) => {
-                        sendMessage?.({} as any, message);
-                        clearAlert?.();
-                      }}
-                    />
-                  )} */}
                 </div>
-                <ScrollToBottom />
-                
-                {/* {progressAnnotations && <ProgressCompilation data={progressAnnotations} />} */}
                 <div className={`bg-black ${chatStarted ? 'rounded-t-lg pb-2' : 'rounded-lg'} relative `}>
                   <div className="absolute top-0 left-0 w-full bg-transparent opacity-50 p-2
                   ">
@@ -880,7 +848,6 @@ ${escapeBoltTags(file.content)}
                       </div>
                     </div>
                   </div>
-                  
                   <div
                     className={classNames(
                       'bg-white/10 backdrop-blur-md p-3 rounded-lg border border-[#FFFFFF1A] relative max-w-chat w-full mx-auto z-prompt mt-7',
@@ -891,7 +858,6 @@ ${escapeBoltTags(file.content)}
                     style={{
                       maxWidth: chatStarted ? 600 : 800
                     }}
-                    
                   >
                     <FilePreview
                       files={uploadedFiles}
@@ -916,7 +882,7 @@ ${escapeBoltTags(file.content)}
                       className={classNames(
                         'w-full pr-16 outline-none resize-none text-[#FFF] placeholder-[#FFFFFF4F] bg-transparent text-sm',
                         'transition-all duration-200',
-                        'hover:border-bolt-elements-focus',
+                        'hover:border-websparks-elements-focus',
                       )}
                       onFocus={() => {
                         // When the user clicks in the textarea, stop listening
@@ -940,11 +906,11 @@ ${escapeBoltTags(file.content)}
                       }}
                       onDragLeave={(e) => {
                         e.preventDefault();
-                        e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
+                        e.currentTarget.style.border = '1px solid var(--websparks-elements-borderColor)';
                       }}
                       onDrop={(e) => {
                         e.preventDefault();
-                        e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
+                        e.currentTarget.style.border = '1px solid var(--websparks-elements-borderColor)';
 
                         const files = Array.from(e.dataTransfer.files);
                         files.forEach((file) => {
@@ -1000,6 +966,7 @@ ${escapeBoltTags(file.content)}
                           setCumulativeTranscript(newValue);
                         }
 
+                        // Pass the event to the parent handler
                         handleInputChange?.(event);
                       }}
                       onPaste={handlePaste}
@@ -1031,9 +998,10 @@ ${escapeBoltTags(file.content)}
                     </ClientOnly>
                     <div className="flex justify-between items-center text-sm px-0 pt-2">
                       <div className="flex gap-1 items-center">
-                      <IconButton title="Upload file" className="transition-all" onClick={handleSelectClick}>
-                      <div className="i-ph:plus text-accent-500 text-xl"></div>
-                      </IconButton>
+                        <IconButton title="Upload file" className="transition-all" onClick={handleSelectClick}>
+                          <div className="i-ph:plus text-accent-500 text-xl"></div>
+                        </IconButton>
+
                         <IconButton
                           title="Enhance prompt"
                           disabled={input.length === 0 || enhancingPrompt}
@@ -1048,7 +1016,7 @@ ${escapeBoltTags(file.content)}
                             }
                           }}
                         >
-                         {enhancingPrompt ? (
+                          {enhancingPrompt ? (
                             <div className="i-svg-spinners:90-ring-with-bg text-accent-500 text-xl animate-spin"></div>
                           ) : isPromptEnhanced ? (
                             <div className="i-ph:shooting-star text-xl text-yellow-400"></div>
@@ -1078,32 +1046,16 @@ ${escapeBoltTags(file.content)}
                           <div className="i-material-icon-theme:database text-xl"></div>
                           <span>{seletedDatabase}</span>
                         </IconButton>
-                        {/* {chatStarted && <ClientOnly>{() => <ExportChatButton exportChat={exportChat} />}</ClientOnly>} */}
-                        {/* <IconButton
-                          title="Model Settings"
-                          className={classNames('transition-all flex items-center gap-1', {
-                            'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent':
-                              isModelSettingsCollapsed,
-                            'bg-bolt-elements-item-backgroundDefault text-bolt-elements-item-contentDefault':
-                              !isModelSettingsCollapsed,
-                          })}
-                          onClick={() => setIsModelSettingsCollapsed(!isModelSettingsCollapsed)}
-                          disabled={!providerList || providerList.length === 0}
-                        >
-                          <div className={`i-ph:caret-${isModelSettingsCollapsed ? 'right' : 'down'} text-lg`} />
-                          {isModelSettingsCollapsed ? <span className="text-xs">{model}</span> : <span />}
-                        </IconButton> */}
                       </div>
-                      
-                      {/* {input.length > 3 ? (
-                        <div className="text-xs text-bolt-elements-textTertiary">
-                          Use <kbd className="kdb px-1.5 py-0.5 rounded bg-bolt-elements-background-depth-2">Shift</kbd>{' '}
-                          + <kbd className="kdb px-1.5 py-0.5 rounded bg-bolt-elements-background-depth-2">Return</kbd>{' '}
-                          a new line
-                        </div>
-                      ) : null} */}
                       {/* <SupabaseConnection /> */}
-                      <ExpoQrModal open={qrModalOpen} onClose={() => setQrModalOpen(false)} />
+                      {/* <div
+                        onClick={() => setOpenConnectionApps(true)}
+                        title="Connect Apps"
+                        className='transition-all cursor-pointer hover:opacity-80'
+                      // disabled={!ready || loading}
+                      >
+                        <GitHubSVG />
+                      </div> */}
                       <div
                         onClick={() => {
                           if (token) {
@@ -1112,17 +1064,17 @@ ${escapeBoltTags(file.content)}
                             setSignInOpen(true);
                           }
                         }}
-                        title="Clone from Github"
+                        title="Connect Github"
                         className='transition-all cursor-pointer hover:opacity-80'
                       >
                         <GradientIconBox iconClassName="i-codicon:github-inverted text-white text-xl" />
                       </div>
+                      {/* <GitCloneButton importChat={importChat} /> */}
                     </div>
                   </div>
                 </div>
               </div>
-            </StickToBottom>
-            
+            </div>
           </div>
           <ClientOnly>
             {() => (
@@ -1167,23 +1119,8 @@ ${escapeBoltTags(file.content)}
         {githubLoading && <LoadingOverlay message="Please wait while we clone the repository" progressText='Loading' />}
       </div>
     );
-
     return <Tooltip.Provider delayDuration={200}>{baseChat}</Tooltip.Provider>;
   },
 );
 
-function ScrollToBottom() {
-  const { isAtBottom, scrollToBottom } = useStickToBottomContext();
 
-  return (
-    !isAtBottom && (
-      <button
-        className="absolute z-50 top-[0%] translate-y-[-100%] text-4xl rounded-lg left-[50%] translate-x-[-50%] px-1.5 py-0.5 flex items-center gap-2 bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor text-bolt-elements-textPrimary text-sm"
-        onClick={() => scrollToBottom()}
-      >
-        Go to last message
-        <span className="i-ph:arrow-down animate-bounce" />
-      </button>
-    )
-  );
-}
