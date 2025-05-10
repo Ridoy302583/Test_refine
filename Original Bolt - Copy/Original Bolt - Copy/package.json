@@ -161,6 +161,7 @@
     "@cloudflare/workers-types": "^4.20241127.0",
     "@electron/notarize": "^2.5.0",
     "@iconify-json/codicon": "^1.2.16",
+    "@iconify-json/iconoir": "^1.2.7",
     "@iconify-json/material-icon-theme": "^1.2.8",
     "@iconify-json/ph": "^1.2.1",
     "@iconify-json/vscode-icons": "^1.2.20",
