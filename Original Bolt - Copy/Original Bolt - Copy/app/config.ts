@@ -1,5 +1,0 @@
-export const API_BASE_URL = 'https://api.websparks.ai'
-// export const API_BASE_URL = 'http://20.121.120.240:8000'
-// export const PRICING_URL = 'http://localhost:5174'
-export const PRICING_URL = 'https://subscription.websparks.ai'
-// export const PRICING_URL = 'http://localhost:5174'
