@@ -870,7 +870,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       >
                         <GitHubSVG />
                       </div> */}
-                      <div
+                      {/* <div
                         onClick={() => {
                           if (token) {
                             setIsGithubOpen(true);
@@ -882,7 +882,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         className='transition-all cursor-pointer hover:opacity-80'
                       >
                         <GradientIconBox iconClassName="i-codicon:github-inverted text-white text-xl" />
-                      </div>
+                      </div> */}
                       <GitCloneButton importChat={importChat} />
                     </div>
                   
@@ -903,6 +903,31 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             )}
           </ClientOnly>
         </div>
+        <Crawler
+          crawlerOpen={crawlerOpen}
+          onCrawlerClose={onCrawlerClose}
+          setUploadedFiles={setUploadedFiles}
+          setImageDataList={setImageDataList}
+          uploadedFiles={uploadedFiles}
+          imageDataList={imageDataList}
+          setCrawlerLoading={setCrawlerLoading}
+        />
+        <Templates
+          templateOpen={templateOpen}
+          onTemplatesClose={() => setTemplateOpen(false)}
+          importChat={importChat}
+          setTemplateLoading={setTemplateLoading}
+        />
+        <WhiteBoardDialog
+          openWhiteBoard={openWhiteBoard}
+          handleWhiteBoardClose={handleWhiteBoardClose}
+          setUploadedFiles={setUploadedFiles}
+          setImageDataList={setImageDataList}
+          uploadedFiles={uploadedFiles}
+          imageDataList={imageDataList}
+        />
+
+        <FileUploadMenu open={open} anchorE2={anchorE2} handleClose={handleClose} handleFileUpload={handleFileUpload} handleClickOpenWhiteBoard={handleClickOpenWhiteBoard} onCrawlerClose={onCrawlerClose} handleGithubClose={handleGithubClose} />
       </div>
     );
 

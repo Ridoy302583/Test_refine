@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-// import useUser from '~/types/user';
+import useUser from '~/types/user';
 import { IconButton } from '../ui/IconButton';
 
 interface SpeechRecognitionButtonProps {
@@ -35,8 +35,8 @@ export const SpeechRecognitionButton: React.FC<SpeechRecognitionButtonProps> = (
 }) => {
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  // const { getStoredToken } = useUser();
-  // const token = getStoredToken();
+  const { getStoredToken } = useUser();
+  const token = getStoredToken();
 
   const animationStyles = {
     micContainer: {
