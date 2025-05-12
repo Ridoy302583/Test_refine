@@ -69,10 +69,7 @@
     "@codemirror/view": "^6.35.0",
     "@headlessui/react": "^2.2.0",
     "@heroicons/react": "^2.2.0",
-    "@iconify-icons/circle-flags": "^1.2.41",
     "@iconify-json/svg-spinners": "^1.2.1",
-    "@iconify/react": "^6.0.0",
-    "@intercom/messenger-js-sdk": "^0.0.14",
     "@lezer/highlight": "^1.2.1",
     "@nanostores/react": "^0.7.3",
     "@octokit/rest": "^21.0.2",
@@ -121,14 +118,12 @@
     "isbot": "^4.4.0",
     "isomorphic-git": "^1.27.2",
     "istextorbinary": "^9.5.0",
-    "jdenticon": "^3.3.0",
     "jose": "^5.9.6",
     "js-cookie": "^3.0.5",
     "jspdf": "^2.5.2",
     "jszip": "^3.10.1",
     "lucide-react": "^0.485.0",
     "mime": "^4.0.4",
-    "mixpanel-browser": "^2.64.0",
     "nanostores": "^0.10.3",
     "ollama-ai-provider": "^0.15.2",
     "path-browserify": "^1.0.1",
@@ -162,7 +157,6 @@
     "@blitz/eslint-plugin": "0.1.0",
     "@cloudflare/workers-types": "^4.20241127.0",
     "@electron/notarize": "^2.5.0",
-    "@iconify-json/circle-flags": "^1.2.6",
     "@iconify-json/codicon": "^1.2.16",
     "@iconify-json/iconoir": "^1.2.7",
     "@iconify-json/material-icon-theme": "^1.2.8",
@@ -208,7 +202,7 @@
     "vite-plugin-optimize-css-modules": "^1.1.0",
     "vite-tsconfig-paths": "^4.3.2",
     "vitest": "^2.1.7",
-    "wrangler": "3.57.1"
+    "wrangler": "^4.5.1"
   },
   "resolutions": {
     "@typescript-eslint/utils": "^8.0.0-alpha.30"
