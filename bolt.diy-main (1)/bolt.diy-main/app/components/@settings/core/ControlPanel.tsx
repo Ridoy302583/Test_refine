@@ -1,267 +1,59 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useStore } from '@nanostores/react';
-import { Switch } from '@radix-ui/react-switch';
 import * as RadixDialog from '@radix-ui/react-dialog';
 import { classNames } from '~/utils/classNames';
-import { TabManagement } from '~/components/@settings/shared/components/TabManagement';
-import { TabTile } from '~/components/@settings/shared/components/TabTile';
-import { useUpdateCheck } from '~/lib/hooks/useUpdateCheck';
-import { useFeatures } from '~/lib/hooks/useFeatures';
-import { useNotifications } from '~/lib/hooks/useNotifications';
-import { useConnectionStatus } from '~/lib/hooks/useConnectionStatus';
-import { useDebugStatus } from '~/lib/hooks/useDebugStatus';
-import {
-  tabConfigurationStore,
-  developerModeStore,
-  setDeveloperMode,
-  resetTabConfiguration,
-} from '~/lib/stores/settings';
-import { profileStore } from '~/lib/stores/profile';
-import type { TabType, TabVisibilityConfig, Profile } from './types';
-import { TAB_LABELS, DEFAULT_TAB_CONFIG } from './constants';
 import { DialogTitle } from '~/components/ui/Dialog';
-import { AvatarDropdown } from './AvatarDropdown';
-import BackgroundRays from '~/components/ui/BackgroundRays';
-
-// Import all tab components
 import ProfileTab from '~/components/@settings/tabs/profile/ProfileTab';
-import SettingsTab from '~/components/@settings/tabs/settings/SettingsTab';
-import NotificationsTab from '~/components/@settings/tabs/notifications/NotificationsTab';
 import FeaturesTab from '~/components/@settings/tabs/features/FeaturesTab';
-import { DataTab } from '~/components/@settings/tabs/data/DataTab';
-import DebugTab from '~/components/@settings/tabs/debug/DebugTab';
-import { EventLogsTab } from '~/components/@settings/tabs/event-logs/EventLogsTab';
-import UpdateTab from '~/components/@settings/tabs/update/UpdateTab';
-import ConnectionsTab from '~/components/@settings/tabs/connections/ConnectionsTab';
-import CloudProvidersTab from '~/components/@settings/tabs/providers/cloud/CloudProvidersTab';
-import ServiceStatusTab from '~/components/@settings/tabs/providers/status/ServiceStatusTab';
-import LocalProvidersTab from '~/components/@settings/tabs/providers/local/LocalProvidersTab';
-import TaskManagerTab from '~/components/@settings/tabs/task-manager/TaskManagerTab';
+import ConnectionsTab from '../tabs/connections/ConnectionsTab';
+import BillingTab from '../tabs/billings/BillingTab';
+import useAuth from '~/components/auth/useAuth';
+import useUser from '~/types/user';
+import { PRICING_URL } from '~/config';
+import ReferralTab from '../tabs/referal/ReferralTab';
+import PromptsTab from '../tabs/prompts/promptstab';
+
+type TabType = 'profile' | 'features' | 'billings' | 'connections' | 'prompts' | 'referral' ;
 
 interface ControlPanelProps {
   open: boolean;
   onClose: () => void;
 }
 
-interface TabWithDevType extends TabVisibilityConfig {
-  isExtraDevTab?: boolean;
-}
-
-interface ExtendedTabConfig extends TabVisibilityConfig {
-  isExtraDevTab?: boolean;
-}
-
-interface BaseTabConfig {
-  id: TabType;
-  visible: boolean;
-  window: 'user' | 'developer';
-  order: number;
-}
-
-interface AnimatedSwitchProps {
-  checked: boolean;
-  onCheckedChange: (checked: boolean) => void;
-  id: string;
-  label: string;
-}
-
-const TAB_DESCRIPTIONS: Record<TabType, string> = {
-  profile: 'Manage your profile and account settings',
-  settings: 'Configure application preferences',
-  notifications: 'View and manage your notifications',
-  features: 'Explore new and upcoming features',
-  data: 'Manage your data and storage',
-  'cloud-providers': 'Configure cloud AI providers and models',
-  'local-providers': 'Configure local AI providers and models',
-  'service-status': 'Monitor cloud LLM service status',
-  connection: 'Check connection status and settings',
-  debug: 'Debug tools and system information',
-  'event-logs': 'View system events and logs',
-  update: 'Check for updates and release notes',
-  'task-manager': 'Monitor system resources and processes',
-  'tab-management': 'Configure visible tabs and their order',
-};
-
-// Beta status for experimental features
-const BETA_TABS = new Set<TabType>(['task-manager', 'service-status', 'update', 'local-providers']);
-
-const BetaLabel = () => (
-  <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full bg-purple-500/10 dark:bg-purple-500/20">
-    <span className="text-[10px] font-medium text-purple-600 dark:text-purple-400">BETA</span>
-  </div>
-);
-
-const AnimatedSwitch = ({ checked, onCheckedChange, id, label }: AnimatedSwitchProps) => {
-  return (
-    <div className="flex items-center gap-2">
-      <Switch
-        id={id}
-        checked={checked}
-        onCheckedChange={onCheckedChange}
-        className={classNames(
-          'relative inline-flex h-6 w-11 items-center rounded-full',
-          'transition-all duration-300 ease-[cubic-bezier(0.87,_0,_0.13,_1)]',
-          'bg-gray-200 dark:bg-gray-700',
-          'data-[state=checked]:bg-purple-500',
-          'focus:outline-none focus:ring-2 focus:ring-purple-500/20',
-          'cursor-pointer',
-          'group',
-        )}
-      >
-        <motion.span
-          className={classNames(
-            'absolute left-[2px] top-[2px]',
-            'inline-block h-5 w-5 rounded-full',
-            'bg-white shadow-lg',
-            'transition-shadow duration-300',
-            'group-hover:shadow-md group-active:shadow-sm',
-            'group-hover:scale-95 group-active:scale-90',
-          )}
-          initial={false}
-          transition={{
-            type: 'spring',
-            stiffness: 500,
-            damping: 30,
-            duration: 0.2,
-          }}
-          animate={{
-            x: checked ? '1.25rem' : '0rem',
-          }}
-        >
-          <motion.div
-            className="absolute inset-0 rounded-full bg-white"
-            initial={false}
-            animate={{
-              scale: checked ? 1 : 0.8,
-            }}
-            transition={{ duration: 0.2 }}
-          />
-        </motion.span>
-        <span className="sr-only">Toggle {label}</span>
-      </Switch>
-      <div className="flex items-center gap-2">
-        <label
-          htmlFor={id}
-          className="text-sm text-gray-500 dark:text-gray-400 select-none cursor-pointer whitespace-nowrap w-[88px]"
-        >
-          {label}
-        </label>
-      </div>
-    </div>
-  );
+// Tab labels mapping
+const TAB_LABELS = {
+  'profile': 'Profile',
+  'features': 'Features',
+  'billings': 'Billings',
+  'connections': 'Connections',
+  'prompts': 'Custom Prompts',
+  'referral': (
+    <span className="text-green-400">Get Free Tokens</span>
+  ),
 };
 
 export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
-  // State
+  // State for active tab
   const [activeTab, setActiveTab] = useState<TabType | null>(null);
   const [loadingTab, setLoadingTab] = useState<TabType | null>(null);
-  const [showTabManagement, setShowTabManagement] = useState(false);
-
-  // Store values
-  const tabConfiguration = useStore(tabConfigurationStore);
-  const developerMode = useStore(developerModeStore);
-  const profile = useStore(profileStore) as Profile;
-
-  // Status hooks
-  const { hasUpdate, currentVersion, acknowledgeUpdate } = useUpdateCheck();
-  const { hasNewFeatures, unviewedFeatures, acknowledgeAllFeatures } = useFeatures();
-  const { hasUnreadNotifications, unreadNotifications, markAllAsRead } = useNotifications();
-  const { hasConnectionIssues, currentIssue, acknowledgeIssue } = useConnectionStatus();
-  const { hasActiveWarnings, activeIssues, acknowledgeAllIssues } = useDebugStatus();
-
-  // Memoize the base tab configurations to avoid recalculation
-  const baseTabConfig = useMemo(() => {
-    return new Map(DEFAULT_TAB_CONFIG.map((tab) => [tab.id, tab]));
-  }, []);
-
-  // Add visibleTabs logic using useMemo with optimized calculations
-  const visibleTabs = useMemo(() => {
-    if (!tabConfiguration?.userTabs || !Array.isArray(tabConfiguration.userTabs)) {
-      console.warn('Invalid tab configuration, resetting to defaults');
-      resetTabConfiguration();
-
-      return [];
-    }
-
-    const notificationsDisabled = profile?.preferences?.notifications === false;
-
-    // In developer mode, show ALL tabs without restrictions
-    if (developerMode) {
-      const seenTabs = new Set<TabType>();
-      const devTabs: ExtendedTabConfig[] = [];
-
-      // Process tabs in order of priority: developer, user, default
-      const processTab = (tab: BaseTabConfig) => {
-        if (!seenTabs.has(tab.id)) {
-          seenTabs.add(tab.id);
-          devTabs.push({
-            id: tab.id,
-            visible: true,
-            window: 'developer',
-            order: tab.order || devTabs.length,
-          });
-        }
-      };
-
-      // Process tabs in priority order
-      tabConfiguration.developerTabs?.forEach((tab) => processTab(tab as BaseTabConfig));
-      tabConfiguration.userTabs.forEach((tab) => processTab(tab as BaseTabConfig));
-      DEFAULT_TAB_CONFIG.forEach((tab) => processTab(tab as BaseTabConfig));
-
-      // Add Tab Management tile
-      devTabs.push({
-        id: 'tab-management' as TabType,
-        visible: true,
-        window: 'developer',
-        order: devTabs.length,
-        isExtraDevTab: true,
-      });
-
-      return devTabs.sort((a, b) => a.order - b.order);
-    }
-
-    // Optimize user mode tab filtering
-    return tabConfiguration.userTabs
-      .filter((tab) => {
-        if (!tab?.id) {
-          return false;
-        }
-
-        if (tab.id === 'notifications' && notificationsDisabled) {
-          return false;
-        }
-
-        return tab.visible && tab.window === 'user';
-      })
-      .sort((a, b) => a.order - b.order);
-  }, [tabConfiguration, developerMode, profile?.preferences?.notifications, baseTabConfig]);
-
-  // Optimize animation performance with layout animations
-  const gridLayoutVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.05,
-        delayChildren: 0.1,
-      },
-    },
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { logout } = useAuth();
+  const { getStoredToken } = useUser();
+  const user_token = getStoredToken();
+  const [isLogoutLoading, setIsLogoutLoading] = useState(false);
+  
+  // Icon mapping for tab navigation using SVGs
+  const tabIcons = {
+    'profile': (<div className='i-solar:user-broken text-xl w-5 h-5' />),
+    'features': (<div className='i-hugeicons:stars text-xl w-5 h-5' />),
+    'billings': (<div className='i-solar:card-broken text-xl w-5 h-5' />),
+    'connections': (<div className='i-ph:plugs-connected text-xl w-5 h-5' />),
+    'prompts': (<div className='i-fluent:prompt-24-regular text-xl w-5 h-5' />),
+    'referral': (<div className='i-ph:users-four text-xl w-5 h-5 text-green-400' />),
   };
 
-  const itemVariants = {
-    hidden: { opacity: 0, scale: 0.8 },
-    visible: {
-      opacity: 1,
-      scale: 1,
-      transition: {
-        type: 'spring',
-        stiffness: 200,
-        damping: 20,
-        mass: 0.6,
-      },
-    },
-  };
+  // Fixed tabs - added 'prompts' tab
+  const tabs: TabType[] = ['profile', 'features', 'billings', 'connections', 'prompts', 'referral'];
 
   // Reset to default view when modal opens/closes
   useEffect(() => {
@@ -269,7 +61,7 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
       // Reset when closing
       setActiveTab(null);
       setLoadingTab(null);
-      setShowTabManagement(false);
+      setMobileMenuOpen(false);
     } else {
       // When opening, set to null to show the main view
       setActiveTab(null);
@@ -280,140 +72,65 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
   const handleClose = () => {
     setActiveTab(null);
     setLoadingTab(null);
-    setShowTabManagement(false);
+    setMobileMenuOpen(false);
     onClose();
   };
 
-  // Handlers
+  // Handle going back to main view
   const handleBack = () => {
-    if (showTabManagement) {
-      setShowTabManagement(false);
-    } else if (activeTab) {
+    if (activeTab) {
       setActiveTab(null);
     }
   };
 
-  const handleDeveloperModeChange = (checked: boolean) => {
-    console.log('Developer mode changed:', checked);
-    setDeveloperMode(checked);
-  };
-
-  // Add effect to log developer mode changes
-  useEffect(() => {
-    console.log('Current developer mode:', developerMode);
-  }, [developerMode]);
-
-  const getTabComponent = (tabId: TabType | 'tab-management') => {
-    if (tabId === 'tab-management') {
-      return <TabManagement />;
-    }
-
+  // Get the component for the selected tab
+  const getTabComponent = (tabId: TabType) => {
     switch (tabId) {
       case 'profile':
         return <ProfileTab />;
-      case 'settings':
-        return <SettingsTab />;
-      case 'notifications':
-        return <NotificationsTab />;
       case 'features':
         return <FeaturesTab />;
-      case 'data':
-        return <DataTab />;
-      case 'cloud-providers':
-        return <CloudProvidersTab />;
-      case 'local-providers':
-        return <LocalProvidersTab />;
-      case 'connection':
+      case 'billings':
+        return <BillingTab />;
+      case 'connections':
         return <ConnectionsTab />;
-      case 'debug':
-        return <DebugTab />;
-      case 'event-logs':
-        return <EventLogsTab />;
-      case 'update':
-        return <UpdateTab />;
-      case 'task-manager':
-        return <TaskManagerTab />;
-      case 'service-status':
-        return <ServiceStatusTab />;
+      case 'prompts':
+        return <PromptsTab />;
+      case 'referral':
+        return <ReferralTab />;
       default:
         return null;
     }
   };
 
-  const getTabUpdateStatus = (tabId: TabType): boolean => {
-    switch (tabId) {
-      case 'update':
-        return hasUpdate;
-      case 'features':
-        return hasNewFeatures;
-      case 'notifications':
-        return hasUnreadNotifications;
-      case 'connection':
-        return hasConnectionIssues;
-      case 'debug':
-        return hasActiveWarnings;
-      default:
-        return false;
-    }
-  };
-
-  const getStatusMessage = (tabId: TabType): string => {
-    switch (tabId) {
-      case 'update':
-        return `New update available (v${currentVersion})`;
-      case 'features':
-        return `${unviewedFeatures.length} new feature${unviewedFeatures.length === 1 ? '' : 's'} to explore`;
-      case 'notifications':
-        return `${unreadNotifications.length} unread notification${unreadNotifications.length === 1 ? '' : 's'}`;
-      case 'connection':
-        return currentIssue === 'disconnected'
-          ? 'Connection lost'
-          : currentIssue === 'high-latency'
-            ? 'High latency detected'
-            : 'Connection issues detected';
-      case 'debug': {
-        const warnings = activeIssues.filter((i) => i.type === 'warning').length;
-        const errors = activeIssues.filter((i) => i.type === 'error').length;
-
-        return `${warnings} warning${warnings === 1 ? '' : 's'}, ${errors} error${errors === 1 ? '' : 's'}`;
-      }
-      default:
-        return '';
-    }
-  };
-
+  // Handle tab click
   const handleTabClick = (tabId: TabType) => {
     setLoadingTab(tabId);
     setActiveTab(tabId);
-    setShowTabManagement(false);
-
-    // Acknowledge notifications based on tab
-    switch (tabId) {
-      case 'update':
-        acknowledgeUpdate();
-        break;
-      case 'features':
-        acknowledgeAllFeatures();
-        break;
-      case 'notifications':
-        markAllAsRead();
-        break;
-      case 'connection':
-        acknowledgeIssue();
-        break;
-      case 'debug':
-        acknowledgeAllIssues();
-        break;
-    }
+    setMobileMenuOpen(false); // Close mobile menu when a tab is selected
 
     // Clear loading state after a delay
     setTimeout(() => setLoadingTab(null), 500);
   };
 
+  const handleUpgradeClick = () => {
+    if (user_token) {
+      window.open(`${PRICING_URL}/${user_token}`, '_blank');
+    }
+    setMobileMenuOpen(false);
+  };
+
+  const handleClickLogout = () => {
+    setIsLogoutLoading(true);
+    // logout(user_token || '');
+    logout(getStoredToken() || '');
+    setMobileMenuOpen(false);
+  }
+
   return (
     <RadixDialog.Root open={open}>
       <RadixDialog.Portal>
-        <div className="fixed inset-0 flex items-center justify-center z-[100] modern-scrollbar">
+        <div className="fixed inset-0 flex items-center justify-center z-[100]">
           <RadixDialog.Overlay asChild>
             <motion.div
               className="absolute inset-0 bg-black/70 dark:bg-black/80 backdrop-blur-sm"
@@ -428,14 +145,15 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
             aria-describedby={undefined}
             onEscapeKeyDown={handleClose}
             onPointerDownOutside={handleClose}
-            className="relative z-[101]"
+            className="relative z-[101] w-full h-full sm:h-auto"
           >
             <motion.div
               className={classNames(
-                'w-[1200px] h-[90vh]',
-                'bg-[#FAFAFA] dark:bg-[#0A0A0A]',
-                'rounded-2xl shadow-2xl',
-                'border border-[#E5E5E5] dark:border-[#1A1A1A]',
+                'w-full sm:max-w-[95%] md:max-w-[90%] lg:max-w-[1000px] mx-auto',
+                'h-full sm:h-[90vh] md:h-[80vh]', // Full height on mobile
+                'bg-gradient-to-br from-gray-900/90 to-black/90',
+                'sm:rounded-2xl shadow-2xl', // Only rounded on larger screens
+                'border border-purple-500/20',
                 'flex flex-col overflow-hidden',
                 'relative',
               )}
@@ -444,106 +162,182 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ duration: 0.2 }}
             >
-              <div className="absolute inset-0 overflow-hidden rounded-2xl">
-                <BackgroundRays />
+              {/* Background gradient */}
+              <div className="absolute inset-0 overflow-hidden sm:rounded-2xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-900/5 to-transparent"></div>
               </div>
+
               <div className="relative z-10 flex flex-col h-full">
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-purple-500/20">
                   <div className="flex items-center space-x-4">
-                    {(activeTab || showTabManagement) && (
+                    {activeTab && (
                       <button
                         onClick={handleBack}
                         className="flex items-center justify-center w-8 h-8 rounded-full bg-transparent hover:bg-purple-500/10 dark:hover:bg-purple-500/20 group transition-all duration-200"
                       >
-                        <div className="i-ph:arrow-left w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-gray-300 group-hover:text-purple-500 transition-colors">
+                          <path d="M19 12H5" />
+                          <path d="M12 19l-7-7 7-7" />
+                        </svg>
                       </button>
                     )}
-                    <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                      {showTabManagement ? 'Tab Management' : activeTab ? TAB_LABELS[activeTab] : 'Control Panel'}
+                    <DialogTitle className="text-lg sm:text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">
+                    {activeTab ? (
+                        <>
+                          <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">
+                            {TAB_LABELS[activeTab]}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="hidden sm:inline-block mr-2 text-blue-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                              <circle cx="12" cy="12" r="3" />
+                            </svg>
+                          </span>
+                          <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">
+                            Settings
+                          </span>
+                        </>
+                      )}
                     </DialogTitle>
                   </div>
-
-                  <div className="flex items-center gap-6">
-                    {/* Mode Toggle */}
-                    <div className="flex items-center gap-2 min-w-[140px] border-r border-gray-200 dark:border-gray-800 pr-6">
-                      <AnimatedSwitch
-                        id="developer-mode"
-                        checked={developerMode}
-                        onCheckedChange={handleDeveloperModeChange}
-                        label={developerMode ? 'Developer Mode' : 'User Mode'}
-                      />
-                    </div>
-
-                    {/* Avatar and Dropdown */}
-                    <div className="border-l border-gray-200 dark:border-gray-800 pl-6">
-                      <AvatarDropdown onSelectTab={handleTabClick} />
-                    </div>
-
-                    {/* Close Button */}
+                  <div className="flex items-center gap-3">
+                    {!activeTab && !mobileMenuOpen && (
+                      <button
+                        onClick={() => setMobileMenuOpen(true)}
+                        className="md:hidden flex items-center justify-center w-8 h-8 rounded-full bg-transparent hover:bg-purple-500/10 group transition-all duration-200"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-gray-300 group-hover:text-purple-500">
+                          <line x1="3" y1="12" x2="21" y2="12" />
+                          <line x1="3" y1="6" x2="21" y2="6" />
+                          <line x1="3" y1="18" x2="21" y2="18" />
+                        </svg>
+                      </button>
+                    )}
                     <button
                       onClick={handleClose}
                       className="flex items-center justify-center w-8 h-8 rounded-full bg-transparent hover:bg-purple-500/10 dark:hover:bg-purple-500/20 group transition-all duration-200"
                     >
-                      <div className="i-ph:x w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-gray-300 group-hover:text-purple-500 transition-colors">
+                        <path d="M18 6L6 18" />
+                        <path d="M6 6l12 12" />
+                      </svg>
                     </button>
                   </div>
                 </div>
 
-                {/* Content */}
-                <div
-                  className={classNames(
-                    'flex-1',
-                    'overflow-y-auto',
-                    'hover:overflow-y-auto',
-                    'scrollbar scrollbar-w-2',
-                    'scrollbar-track-transparent',
-                    'scrollbar-thumb-[#E5E5E5] hover:scrollbar-thumb-[#CCCCCC]',
-                    'dark:scrollbar-thumb-[#333333] dark:hover:scrollbar-thumb-[#444444]',
-                    'will-change-scroll',
-                    'touch-auto',
-                  )}
-                >
-                  <motion.div
-                    key={activeTab || 'home'}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="p-6"
-                  >
-                    {showTabManagement ? (
-                      <TabManagement />
-                    ) : activeTab ? (
-                      getTabComponent(activeTab)
-                    ) : (
-                      <motion.div
-                        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative"
-                        variants={gridLayoutVariants}
-                        initial="hidden"
-                        animate="visible"
-                      >
-                        <AnimatePresence mode="popLayout">
-                          {(visibleTabs as TabWithDevType[]).map((tab: TabWithDevType) => (
-                            <motion.div key={tab.id} layout variants={itemVariants} className="aspect-[1.5/1]">
-                              <TabTile
-                                tab={tab}
-                                onClick={() => handleTabClick(tab.id as TabType)}
-                                isActive={activeTab === tab.id}
-                                hasUpdate={getTabUpdateStatus(tab.id)}
-                                statusMessage={getStatusMessage(tab.id)}
-                                description={TAB_DESCRIPTIONS[tab.id]}
-                                isLoading={loadingTab === tab.id}
-                                className="h-full relative"
-                              >
-                                {BETA_TABS.has(tab.id) && <BetaLabel />}
-                              </TabTile>
-                            </motion.div>
-                          ))}
-                        </AnimatePresence>
-                      </motion.div>
+                {/* Content with vertical tab layout */}
+                <div className="flex flex-1 overflow-hidden">
+                  {/* Left sidebar with vertical tabs - hidden on mobile unless menu is open */}
+                  <div 
+                    className={classNames(
+                      "md:w-64 border-r border-purple-500/20 bg-transparent md:flex-shrink-0 md:overflow-y-auto",
+                      mobileMenuOpen 
+                        ? "absolute inset-0 z-20 bg-gradient-to-br from-gray-900/95 to-black/95 block" 
+                        : "hidden md:block"
                     )}
-                  </motion.div>
+                  >
+                    {/* Mobile menu close button */}
+                    {mobileMenuOpen && (
+                      <div className="flex justify-end p-4 md:hidden">
+                        <button 
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="flex items-center justify-center w-8 h-8 rounded-full bg-transparent hover:bg-purple-500/10 group transition-all duration-200"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-gray-300 group-hover:text-purple-500">
+                            <path d="M18 6L6 18" />
+                            <path d="M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
+                    
+                    <div className="h-full flex flex-col justify-between px-3 py-4">
+                      <nav className="space-y-1">
+                        {tabs.map((tab) => (
+                          <button
+                            key={tab}
+                            onClick={() => handleTabClick(tab)}
+                            className={classNames(
+                              'flex items-center w-full px-3 py-2 text-sm rounded-md transition-all',
+                              'group relative',
+                              activeTab === tab
+                                ? 'bg-gradient-to-r from-blue-600 to-purple-600/30 text-white font-semibold'
+                                : 'text-gray-300 bg-transparent hover:bg-gray-800'
+                            )}
+                          >
+                            {tabIcons[tab] && (
+                              <span className={classNames("mr-3 flex-shrink-0", 
+                                activeTab === tab ? "text-white" : "")}
+                              >
+                                {tabIcons[tab]}
+                              </span>
+                            )}
+                            <span>{TAB_LABELS[tab]}</span>
+                            {activeTab === tab && (
+                              <span className="ml-auto h-5 w-1.5 rounded-full bg-gradient-to-b from-blue-400 to-purple-500"></span>
+                            )}
+                          </button>
+                        ))}
+                      </nav>
+                      <nav className="space-y-1">
+                        <button
+                          onClick={handleUpgradeClick}
+                          className={classNames(
+                            'flex items-center w-full px-3 py-2 text-sm rounded-md transition-all',
+                            'group relative text-gray-300 bg-transparent hover:bg-gradient-to-r from-blue-600/20 to-purple-600/20'
+                          )}
+                        >
+                          <span className="mr-3 flex-shrink-0">
+                            <div className="i-solar:archive-up-broken text-xl text-blue-500 w-5 h-5" />
+                          </span>
+                          <span className='bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 font-bold'>Upgrade Plan</span>
+                        </button>
+                        <button
+                          onClick={handleClickLogout}
+                          className={classNames(
+                            'flex items-center w-full px-3 py-2 text-sm rounded-md transition-all',
+                            'group relative text-red-600 hover:text-white bg-red-500/10 hover:bg-red-800'
+                          )}
+                        >
+                          <span className="mr-3 flex-shrink-0">
+                          {isLogoutLoading ? (
+                            <div className="animate-spin w-5 h-5 border-2 border-red-400 border-t-transparent rounded-full"></div>
+                          ) : (
+                            <div className='i-octicon:sign-out-16 text-xl w-5 h-5'/>
+                          )}
+                          </span>
+                          <span className='font-bold'>Logout</span>
+                        </button>
+                      </nav>
+                    </div>
+                  </div>
+
+                  {/* Main content area */}
+                  <div className={classNames(
+                    "flex-1 overflow-y-auto",
+                    mobileMenuOpen ? "hidden md:block" : ''
+                  )}>
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={activeTab || 'home'}
+                        initial={{ opacity: 0, x: 10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -10 }}
+                        transition={{ duration: 0.2 }}
+                        className="p-4 sm:p-6 h-full"
+                      >
+                        {activeTab ? (
+                          getTabComponent(activeTab)
+                        ) : (
+                          <ProfileTab />
+                        )}
+                      </motion.div>
+                    </AnimatePresence>
+                  </div>
                 </div>
               </div>
             </motion.div>

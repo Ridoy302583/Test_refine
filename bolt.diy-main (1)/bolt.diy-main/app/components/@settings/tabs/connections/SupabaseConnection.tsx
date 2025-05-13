@@ -85,7 +85,7 @@ export function SupabaseConnection() {
 
     return (
         <motion.div
-            className="bg-websparks-elements-background border border-websparks-elements-borderColor rounded-lg"
+            className="bg-bolt-elements-background border border-bolt-elements-borderColor rounded-lg"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
@@ -162,10 +162,10 @@ export function SupabaseConnection() {
                                 src="https://cdn.simpleicons.org/supabase"
                             />
                             <div>
-                                <h4 className="text-sm font-medium text-websparks-elements-textPrimary">
+                                <h4 className="text-sm font-medium text-bolt-elements-textPrimary">
                                     {supabaseData.isConnected && `${supabaseData.user?.role} (${supabaseData.user?.email})`}
                                 </h4>
-                                <p className="text-xs text-websparks-elements-textSecondary">
+                                <p className="text-xs text-bolt-elements-textSecondary">
                                     Projects: {supabaseData.stats?.totalProjects}
                                 </p>
                             </div>
@@ -192,8 +192,8 @@ export function SupabaseConnection() {
                             </Button>
                             <div className="flex flex-col gap-1">
                                 <div className="flex items-center gap-2">
-                                    <div className="i-ph:check-circle w-4 h-4 text-websparks-elements-icon-success" />
-                                    <span className="text-sm text-websparks-elements-textPrimary">
+                                    <div className="i-ph:check-circle w-4 h-4 text-bolt-elements-icon-success" />
+                                    <span className="text-sm text-bolt-elements-textPrimary">
                                         Connected to Supabase
                                     </span>
                                 </div>

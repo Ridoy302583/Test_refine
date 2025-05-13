@@ -33,35 +33,58 @@ const FeatureCard = memo(
       layoutId={feature.id}
       className={classNames(
         'relative group cursor-pointer',
-        'bg-bolt-elements-background-depth-2',
-        'hover:bg-bolt-elements-background-depth-3',
-        'transition-colors duration-200',
-        'rounded-lg overflow-hidden',
+        'bg-gradient-to-br from-gray-900/90 to-black/90', // Brand background
+        'hover:bg-gradient-to-br from-gray-800/90 to-black/90', // Hover state
+        'border border-purple-500/20', // Brand border
+        'transition-all duration-200',
+        'rounded-lg overflow-hidden shadow-lg',
       )}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
     >
-      <div className="p-4">
+      {/* Subtle gradient accent at the top */}
+      <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-80"></div>
+      
+      <div className="p-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={classNames(feature.icon, 'w-5 h-5 text-bolt-elements-textSecondary')} />
-            <div className="flex items-center gap-2">
-              <h4 className="font-medium text-bolt-elements-textPrimary">{feature.title}</h4>
-              {feature.beta && (
-                <span className="px-2 py-0.5 text-xs rounded-full bg-blue-500/10 text-blue-500 font-medium">Beta</span>
-              )}
-              {feature.experimental && (
-                <span className="px-2 py-0.5 text-xs rounded-full bg-orange-500/10 text-orange-500 font-medium">
-                  Experimental
-                </span>
-              )}
+            {/* Icon with glow effect */}
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600/20 to-purple-600/20 flex items-center justify-center shadow-inner">
+              <div className={classNames(feature.icon, 'w-5 h-5 text-blue-400')} />
+            </div>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <h4 className="font-medium text-white">{feature.title}</h4>
+                {feature.beta && (
+                  <span className="px-2 py-0.5 text-xs rounded-full bg-blue-500/20 text-blue-400 font-medium border border-blue-500/30">
+                    Beta
+                  </span>
+                )}
+                {feature.experimental && (
+                  <span className="px-2 py-0.5 text-xs rounded-full bg-purple-500/20 text-purple-400 font-medium border border-purple-500/30">
+                    Experimental
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-gray-300 mt-1">{feature.description}</p>
             </div>
           </div>
           <Switch checked={feature.enabled} onCheckedChange={(checked) => onToggle(feature.id, checked)} />
         </div>
-        <p className="mt-2 text-sm text-bolt-elements-textSecondary">{feature.description}</p>
-        {feature.tooltip && <p className="mt-1 text-xs text-bolt-elements-textTertiary">{feature.tooltip}</p>}
+        
+        {feature.tooltip && (
+          <div className="mt-3 p-2 rounded-md bg-blue-900/10 border border-blue-500/10 text-xs text-gray-400">
+            <div className="flex items-start">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-blue-400 mr-1.5 mt-0.5">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 16v-4" />
+                <path d="M12 8h.01" />
+              </svg>
+              {feature.tooltip}
+            </div>
+          </div>
+        )}
       </div>
     </motion.div>
   ),
@@ -83,20 +106,22 @@ const FeatureSection = memo(
   }) => (
     <motion.div
       layout
-      className="flex flex-col gap-4"
+      className="flex flex-col gap-5"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <div className="flex items-center gap-3">
-        <div className={classNames(icon, 'text-xl text-purple-500')} />
+      <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-600/10 to-purple-600/10 rounded-xl border border-purple-500/20">
+        <div className="p-3 rounded-lg bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-purple-500/20">
+          <div className={classNames(icon, 'text-2xl text-blue-400')} />
+        </div>
         <div>
-          <h3 className="text-lg font-medium text-bolt-elements-textPrimary">{title}</h3>
-          <p className="text-sm text-bolt-elements-textSecondary">{description}</p>
+          <h3 className="text-lg font-semibold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">{title}</h3>
+          <p className="text-sm text-gray-300">{description}</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-5">
         {features.map((feature, index) => (
           <FeatureCard key={feature.id} feature={feature} index={index} onToggle={onToggleFeature} />
         ))}
@@ -127,11 +152,11 @@ export default function FeaturesTab() {
     }
 
     if (contextOptimizationEnabled === undefined) {
-      enableContextOptimization(true); // Default: ON - Enable context optimization
+      enableContextOptimization(false); // Default: OFF - Disable context optimization
     }
 
     if (autoSelectTemplate === undefined) {
-      setAutoSelectTemplate(true); // Default: ON - Enable auto-select templates
+      setAutoSelectTemplate(false); // Default: OFF - Disable auto-select templates
     }
 
     if (promptId === undefined) {
@@ -139,7 +164,7 @@ export default function FeaturesTab() {
     }
 
     if (eventLogs === undefined) {
-      setEventLogs(true); // Default: ON - Enable event logging
+      setEventLogs(false); // Default: OFF - Disable event logging
     }
   }, []); // Only run once on component mount
 
@@ -179,21 +204,21 @@ export default function FeaturesTab() {
 
   const features = {
     stable: [
-      {
-        id: 'latestBranch',
-        title: 'Main Branch Updates',
-        description: 'Get the latest updates from the main branch',
-        icon: 'i-ph:git-branch',
-        enabled: isLatestBranch,
-        tooltip: 'Enabled by default to receive updates from the main development branch',
-      },
+      // {
+      //   id: 'latestBranch',
+      //   title: 'Main Branch Updates',
+      //   description: 'Get the latest updates from the main branch',
+      //   icon: 'i-ph:git-branch',
+      //   enabled: isLatestBranch,
+      //   tooltip: 'Receive updates from the main development branch',
+      // },
       {
         id: 'autoSelectTemplate',
         title: 'Auto Select Template',
         description: 'Automatically select starter template',
         icon: 'i-ph:selection',
         enabled: autoSelectTemplate,
-        tooltip: 'Enabled by default to automatically select the most appropriate starter template',
+        tooltip: 'Automatically select the most appropriate starter template',
       },
       {
         id: 'contextOptimization',
@@ -201,16 +226,18 @@ export default function FeaturesTab() {
         description: 'Optimize context for better responses',
         icon: 'i-ph:brain',
         enabled: contextOptimizationEnabled,
-        tooltip: 'Enabled by default for improved AI responses',
+        tooltip: 'Enable improved AI responses through context optimization',
+        experimental: true,
       },
-      {
-        id: 'eventLogs',
-        title: 'Event Logging',
-        description: 'Enable detailed event logging and history',
-        icon: 'i-ph:list-bullets',
-        enabled: eventLogs,
-        tooltip: 'Enabled by default to record detailed logs of system events and user actions',
-      },
+      // {
+      //   id: 'eventLogs',
+      //   title: 'Event Logging',
+      //   description: 'Enable detailed event logging and history',
+      //   icon: 'i-ph:list-bullets',
+      //   enabled: eventLogs,
+      //   tooltip: 'Record detailed logs of system events and user actions',
+      //   beta: true,
+      // },
     ],
     beta: [],
   };
@@ -221,7 +248,7 @@ export default function FeaturesTab() {
         title="Core Features"
         features={features.stable}
         icon="i-ph:check-circle"
-        description="Essential features that are enabled by default for optimal performance"
+        description="Essential features that can be enabled for optimal performance"
         onToggleFeature={handleToggleFeature}
       />
 
@@ -235,61 +262,7 @@ export default function FeaturesTab() {
         />
       )}
 
-      <motion.div
-        layout
-        className={classNames(
-          'bg-bolt-elements-background-depth-2',
-          'hover:bg-bolt-elements-background-depth-3',
-          'transition-all duration-200',
-          'rounded-lg p-4',
-          'group',
-        )}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-      >
-        <div className="flex items-center gap-4">
-          <div
-            className={classNames(
-              'p-2 rounded-lg text-xl',
-              'bg-bolt-elements-background-depth-3 group-hover:bg-bolt-elements-background-depth-4',
-              'transition-colors duration-200',
-              'text-purple-500',
-            )}
-          >
-            <div className="i-ph:book" />
-          </div>
-          <div className="flex-1">
-            <h4 className="text-sm font-medium text-bolt-elements-textPrimary group-hover:text-purple-500 transition-colors">
-              Prompt Library
-            </h4>
-            <p className="text-xs text-bolt-elements-textSecondary mt-0.5">
-              Choose a prompt from the library to use as the system prompt
-            </p>
-          </div>
-          <select
-            value={promptId}
-            onChange={(e) => {
-              setPromptId(e.target.value);
-              toast.success('Prompt template updated');
-            }}
-            className={classNames(
-              'p-2 rounded-lg text-sm min-w-[200px]',
-              'bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor',
-              'text-bolt-elements-textPrimary',
-              'focus:outline-none focus:ring-2 focus:ring-purple-500/30',
-              'group-hover:border-purple-500/30',
-              'transition-all duration-200',
-            )}
-          >
-            {PromptLibrary.getList().map((x) => (
-              <option key={x.id} value={x.id}>
-                {x.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </motion.div>
+     
     </div>
   );
 }

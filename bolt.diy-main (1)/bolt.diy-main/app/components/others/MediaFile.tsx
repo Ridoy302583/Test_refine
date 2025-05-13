@@ -1,4 +1,4 @@
-//@ts-nocheck
+
 import React, { useCallback, type ReactNode } from 'react';
 import { useStore } from '@nanostores/react';
 import useUser from '~/types/user';

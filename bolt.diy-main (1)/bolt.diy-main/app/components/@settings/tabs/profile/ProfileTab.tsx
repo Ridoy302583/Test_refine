@@ -4,175 +4,219 @@ import { classNames } from '~/utils/classNames';
 import { profileStore, updateProfile } from '~/lib/stores/profile';
 import { toast } from 'react-toastify';
 import { debounce } from '~/utils/debounce';
+import { motion } from 'framer-motion';
+import * as Tooltip from '@radix-ui/react-tooltip';
+import useUser from '~/types/user';
+import { PRICING_URL } from '~/config';
 
 export default function ProfileTab() {
-  const profile = useStore(profileStore);
-  const [isUploading, setIsUploading] = useState(false);
-
-  // Create debounced update functions
-  const debouncedUpdate = useCallback(
-    debounce((field: 'username' | 'bio', value: string) => {
-      updateProfile({ [field]: value });
-      toast.success(`${field.charAt(0).toUpperCase() + field.slice(1)} updated`);
-    }, 1000),
-    [],
-  );
-
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-
-    if (!file) {
-      return;
-    }
-
-    try {
-      setIsUploading(true);
-
-      // Convert the file to base64
-      const reader = new FileReader();
-
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        updateProfile({ avatar: base64String });
-        setIsUploading(false);
-        toast.success('Profile picture updated');
-      };
-
-      reader.onerror = () => {
-        console.error('Error reading file:', reader.error);
-        setIsUploading(false);
-        toast.error('Failed to update profile picture');
-      };
-      reader.readAsDataURL(file);
-    } catch (error) {
-      console.error('Error uploading avatar:', error);
-      setIsUploading(false);
-      toast.error('Failed to update profile picture');
-    }
+  const { getStoredToken, user, plan } = useUser();
+  const user_token = getStoredToken();
+  
+  const formatNumber = (num: number) => {
+    if (!num) return '0';
+    if (num >= 1e9) return `${(num / 1e9).toFixed(1)}B`;
+    if (num >= 1e6) return `${(num / 1e6).toFixed(1)}M`;
+    if (num >= 1e3) return `${(num / 1e3).toFixed(1)}K`;
+    return num.toString();
   };
-
-  const handleProfileUpdate = (field: 'username' | 'bio', value: string) => {
-    // Update the store immediately for UI responsiveness
-    updateProfile({ [field]: value });
-
-    // Debounce the toast notification
-    debouncedUpdate(field, value);
+  
+  const itemVariants = {
+    hidden: { opacity: 0, scale: 0.8 },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      transition: {
+        type: 'spring',
+        stiffness: 200,
+        damping: 20,
+        mass: 0.6,
+      },
+    },
   };
-
+  
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="space-y-6">
-        {/* Personal Information Section */}
-        <div>
-          {/* Avatar Upload */}
-          <div className="flex items-start gap-6 mb-8">
-            <div
-              className={classNames(
-                'w-24 h-24 rounded-full overflow-hidden',
-                'bg-gray-100 dark:bg-gray-800/50',
-                'flex items-center justify-center',
-                'ring-1 ring-gray-200 dark:ring-gray-700',
-                'relative group',
-                'transition-all duration-300 ease-out',
-                'hover:ring-purple-500/30 dark:hover:ring-purple-500/30',
-                'hover:shadow-lg hover:shadow-purple-500/10',
-              )}
+      <div className='w-full flex items-center justify-center mb-6 text-white'>
+        <div className="w-full">
+          <motion.div 
+            layout 
+            variants={itemVariants}
+            className="mb-6"
+          >
+            <Tooltip.Provider delayDuration={200}>
+              <Tooltip.Root>
+                <Tooltip.Trigger asChild>
+                  <div className='flex flex-col items-center gap-4 mb-4'>
+                    <div className="relative">
+                      <div className="h-24 w-24 rounded-full overflow-hidden bg-gradient-to-r from-blue-500 to-purple-600 p-0.5">
+                        <img
+                          src={user?.profile_pic}
+                          alt={user?.full_name || 'Profile picture'}
+                          className="h-full w-full rounded-full object-cover bg-gray-900"
+                          crossOrigin='anonymous'
+                        />
+                      </div>
+                      {/* Green active status dot with improved styling */}
+                      <div className="absolute bottom-0 right-0 h-5 w-5 rounded-full bg-green-500 border-2 border-gray-900 shadow-lg"></div>
+                    </div>
+                    <div className='flex flex-col items-center gap-2'>
+                      <p className='font-bold text-xl bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400'>{user?.full_name}</p>
+                      <span className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-white text-xs px-3 py-1 rounded-full border border-blue-500/20">
+                        {plan?.name} Plan
+                      </span>
+                    </div>
+                  </div>
+                </Tooltip.Trigger>
+              </Tooltip.Root>
+            </Tooltip.Provider>
+          </motion.div>
+          
+          <div className='grid grid-cols-1 gap-4'>
+            <motion.div 
+              layout 
+              variants={itemVariants}
+              initial="hidden"
+              animate="visible"
             >
-              {profile.avatar ? (
-                <img
-                  src={profile.avatar}
-                  alt="Profile"
-                  className={classNames(
-                    'w-full h-full object-cover',
-                    'transition-all duration-300 ease-out',
-                    'group-hover:scale-105 group-hover:brightness-90',
-                  )}
-                />
-              ) : (
-                <div className="i-ph:robot-fill w-16 h-16 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-purple-500/70 transform -translate-y-1" />
-              )}
-
-              <label
-                className={classNames(
-                  'absolute inset-0',
-                  'flex items-center justify-center',
-                  'bg-black/0 group-hover:bg-black/40',
-                  'cursor-pointer transition-all duration-300 ease-out',
-                  isUploading ? 'cursor-wait' : '',
-                )}
+              <Tooltip.Provider delayDuration={200}>
+                <Tooltip.Root>
+                  <Tooltip.Trigger asChild>
+                    <div className='w-full h-full min-w-[160px] border border-purple-500/20 rounded-xl bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm shadow-lg overflow-hidden'>
+                      <h4 className="text-white mb-2 border-b border-purple-500/20 py-3 px-4 font-medium bg-gradient-to-r from-blue-600/10 to-purple-600/10">
+                        Profile Details
+                      </h4>
+                      <div className="w-full overflow-x-auto p-4">
+                        <table className="w-full table-fixed text-white">
+                          <colgroup>
+                            <col className="w-1/3" />
+                            <col />
+                          </colgroup>
+                          <tbody>
+                            <tr>
+                              <td className="p-2 text-gray-400">Name</td>
+                              <td className="p-2">{user?.full_name}</td>
+                            </tr>
+                            <tr>
+                              <td className="p-2 text-gray-400">Email</td>
+                              <td className="p-2">{user?.email}</td>
+                            </tr>
+                            <tr>
+                              <td className="p-2 text-gray-400">Role</td>
+                              <td className="p-2">{user?.role}</td>
+                            </tr>
+                            <tr>
+                              <td className="p-2 text-gray-400">Plan</td>
+                              <td className="p-2">
+                                <span className="font-bold">{plan?.name} </span>
+                                {plan?.name !== 'Enterprise' && (
+                                  <a 
+                                    href={`${PRICING_URL}/${user_token}`} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-blue-400 hover:text-blue-300 transition-colors ml-1"
+                                  >
+                                    (Upgrade)
+                                  </a>
+                                )}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </Tooltip.Trigger>
+                </Tooltip.Root>
+              </Tooltip.Provider>
+            </motion.div>
+            
+            <motion.div 
+              layout 
+              variants={itemVariants}
+              initial="hidden"
+              animate="visible"
+              transition={{ delay: 0.15 }}
+            >
+              <Tooltip.Provider delayDuration={200}>
+                <Tooltip.Root>
+                  <Tooltip.Trigger asChild>
+                    <div className='w-full h-full min-w-[160px] border border-purple-500/20 rounded-xl bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm shadow-lg overflow-hidden'>
+                      <h4 className="text-white mb-2 border-b border-purple-500/20 py-3 px-4 font-medium bg-gradient-to-r from-blue-600/10 to-purple-600/10">
+                        Token Management
+                      </h4>
+                      <div className="w-full overflow-x-auto p-4">
+                        <table className="w-full table-fixed text-white">
+                          <colgroup>
+                            <col className="w-1/3" />
+                            <col />
+                          </colgroup>
+                          <tbody>
+                            <tr>
+                              <td className="p-2 text-gray-400">Total Tokens</td>
+                              <td className="p-2 font-medium">{formatNumber(plan?.total_token)}</td>
+                            </tr>
+                            <tr>
+                              <td className="p-2 text-gray-400">Usage Tokens</td>
+                              <td className="p-2 font-medium">{formatNumber((plan?.total_token || 0) - (plan?.token_available || 0))}</td>
+                            </tr>
+                            <tr>
+                              <td className="p-2 text-gray-400">Remaining Token</td>
+                              <td className="p-2 font-medium text-blue-400">{formatNumber(plan?.remaining_token)}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                        
+                        {/* Progress bar showing token usage */}
+                        <div className="mt-4 px-2">
+                          <div className="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
+                            <div 
+                              className="bg-gradient-to-r from-blue-500 to-purple-600 h-full rounded-full"
+                              style={{ 
+                                width: `${plan?.remaining_token ? (plan.remaining_token / plan.total_token) * 100 : 0}%` 
+                              }}
+                            />
+                          </div>
+                          <p className="text-xs text-gray-400 mt-1 text-right">
+                            {plan?.remaining_token ? Math.round((plan.remaining_token / plan.total_token) * 100) : 0}% remaining
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </Tooltip.Trigger>
+                </Tooltip.Root>
+              </Tooltip.Provider>
+            </motion.div>
+            
+            {/* Action Buttons */}
+            {/* <motion.div 
+              layout 
+              variants={itemVariants}
+              initial="hidden"
+              animate="visible"
+              transition={{ delay: 0.3 }}
+              className="flex justify-center gap-3 mt-2"
+            >
+              <button 
+                className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-medium rounded-lg transition-all duration-300 shadow-lg shadow-blue-900/20 flex items-center"
               >
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleAvatarUpload}
-                  disabled={isUploading}
-                />
-                {isUploading ? (
-                  <div className="i-ph:spinner-gap w-6 h-6 text-white animate-spin" />
-                ) : (
-                  <div className="i-ph:camera-plus w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-all duration-300 ease-out transform group-hover:scale-110" />
-                )}
-              </label>
-            </div>
-
-            <div className="flex-1 pt-1">
-              <label className="block text-base font-medium text-gray-900 dark:text-gray-100 mb-1">
-                Profile Picture
-              </label>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Upload a profile picture or avatar</p>
-            </div>
-          </div>
-
-          {/* Username Input */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Username</label>
-            <div className="relative group">
-              <div className="absolute left-3.5 top-1/2 -translate-y-1/2">
-                <div className="i-ph:user-circle-fill w-5 h-5 text-gray-400 dark:text-gray-500 transition-colors group-focus-within:text-purple-500" />
-              </div>
-              <input
-                type="text"
-                value={profile.username}
-                onChange={(e) => handleProfileUpdate('username', e.target.value)}
-                className={classNames(
-                  'w-full pl-11 pr-4 py-2.5 rounded-xl',
-                  'bg-white dark:bg-gray-800/50',
-                  'border border-gray-200 dark:border-gray-700/50',
-                  'text-gray-900 dark:text-white',
-                  'placeholder-gray-400 dark:placeholder-gray-500',
-                  'focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50',
-                  'transition-all duration-300 ease-out',
-                )}
-                placeholder="Enter your username"
-              />
-            </div>
-          </div>
-
-          {/* Bio Input */}
-          <div className="mb-8">
-            <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Bio</label>
-            <div className="relative group">
-              <div className="absolute left-3.5 top-3">
-                <div className="i-ph:text-aa w-5 h-5 text-gray-400 dark:text-gray-500 transition-colors group-focus-within:text-purple-500" />
-              </div>
-              <textarea
-                value={profile.bio}
-                onChange={(e) => handleProfileUpdate('bio', e.target.value)}
-                className={classNames(
-                  'w-full pl-11 pr-4 py-2.5 rounded-xl',
-                  'bg-white dark:bg-gray-800/50',
-                  'border border-gray-200 dark:border-gray-700/50',
-                  'text-gray-900 dark:text-white',
-                  'placeholder-gray-400 dark:placeholder-gray-500',
-                  'focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50',
-                  'transition-all duration-300 ease-out',
-                  'resize-none',
-                  'h-32',
-                )}
-                placeholder="Tell us about yourself"
-              />
-            </div>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+                Edit Profile
+              </button>
+              
+              <button 
+                className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white font-medium rounded-lg transition-all duration-200 border border-purple-500/20 flex items-center"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-2">
+                  <path d="m17 11-5-5-5 5" />
+                  <path d="M17 18H7" />
+                  <path d="M12 16V6" />
+                </svg>
+                Upgrade Plan
+              </button>
+            </motion.div> */}
           </div>
         </div>
       </div>
