@@ -258,6 +258,30 @@ export class ActionRunner {
     if (!shell || !shell.terminal || !shell.process) {
       unreachable('Shell terminal not found');
     }
+    // FIX: Check if terminal is busy with a long-running process
+    const state = shell.executionState.get();
+
+    // If there's an active execution, interrupt it first
+    if (state?.active) {
+      logger.debug('Terminal busy, interrupting current process...');
+
+      // Send Ctrl+C to interrupt any running process
+      shell.terminal.input('\x03');
+
+      // Wait for the interruption to take effect
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Force clear the terminal state
+      shell.executionState.set(undefined);
+
+      // Wait for terminal to be ready
+      await shell.waitTillOscCode('prompt').catch(() => {
+        // If waiting for prompt fails, just continue
+        logger.debug('Could not wait for prompt, proceeding anyway');
+      });
+    }
+
+    // Execute the command
 
     const resp = await shell.executeCommand(this.runnerId.get(), action.content, () => {
       logger.debug(`[${action.type}]:Aborting Action\n\n`, action);

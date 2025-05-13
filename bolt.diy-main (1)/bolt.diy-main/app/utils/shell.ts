@@ -3,7 +3,8 @@ import type { ITerminal } from '~/types/terminal';
 import { withResolvers } from './promises';
 import { atom } from 'nanostores';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
-
+import { createScopedLogger } from './logger';
+const logger = createScopedLogger('Shell');
 export async function newShellProcess(webcontainer: WebContainer, terminal: ITerminal) {
   const args: string[] = [];
 
@@ -179,48 +180,62 @@ export class BoltShell {
     return this.#process;
   }
 
-  async executeCommand(sessionId: string, command: string, abort?: () => void): Promise<ExecutionResult> {
-    if (!this.process || !this.terminal) {
-      return undefined;
-    }
+   async executeCommand(sessionId: string, command: string, abort?: () => void): Promise<ExecutionResult> {
+  if (!this.process || !this.terminal) {
+    return undefined;
+  }
 
-    const state = this.executionState.get();
+  const state = this.executionState.get();
 
-    if (state?.active && state.abort) {
+  // FIX: Force clear any existing state
+  if (state) {
+    if (state.abort) {
       state.abort();
     }
-
-    /*
-     * interrupt the current execution
-     *  this.#shellInputStream?.write('\x03');
-     */
-    this.terminal.input('\x03');
-    await this.waitTillOscCode('prompt');
-
-    if (state && state.executionPrms) {
-      await state.executionPrms;
-    }
-
-    //start a new execution
-    this.terminal.input(command.trim() + '\n');
-
-    //wait for the execution to finish
-    const executionPromise = this.getCurrentExecutionResult();
-    this.executionState.set({ sessionId, active: true, executionPrms: executionPromise, abort });
-
-    const resp = await executionPromise;
-    this.executionState.set({ sessionId, active: false });
-
-    if (resp) {
-      try {
-        resp.output = cleanTerminalOutput(resp.output);
-      } catch (error) {
-        console.log('failed to format terminal output', error);
-      }
-    }
-
-    return resp;
+    
+    // Clear the state
+    this.executionState.set(undefined);
   }
+
+  // Send CTRL+C to ensure clean state
+  this.terminal.input('\x03');
+  
+  // Wait a bit for the interrupt to take effect
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  // Try to get to a clean prompt state
+  try {
+    await Promise.race([
+      this.waitTillOscCode('prompt'),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000))
+    ]);
+  } catch (error) {
+    logger.debug('Failed to wait for prompt, continuing anyway');
+  }
+
+  // Start the new execution
+  this.terminal.input(command.trim() + '\n');
+
+  // Wait for the execution to finish
+  const executionPromise = this.getCurrentExecutionResult();
+  this.executionState.set({ sessionId, active: true, executionPrms: executionPromise, abort });
+
+  const resp = await executionPromise;
+  this.executionState.set({ sessionId, active: false });
+
+  if (resp) {
+    try {
+      resp.output = cleanTerminalOutput(resp.output);
+    } catch (error) {
+      console.log('failed to format terminal output', error);
+
+    }
+
+
+  }
+
+  return resp;
+}
 
   async getCurrentExecutionResult(): Promise<ExecutionResult> {
     const { output, exitCode } = await this.waitTillOscCode('exit');
